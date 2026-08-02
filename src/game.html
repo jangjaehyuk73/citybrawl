@@ -403,6 +403,16 @@ var keys = {};
 var BLOCK = {ArrowLeft:1, ArrowRight:1, ArrowUp:1, ArrowDown:1, Space:1};
 window.addEventListener("keydown", function(e){
   if(BLOCK[e.code]) e.preventDefault();
+  initAudio();                       // 자동재생 정책 — 첫 입력에서 시작
+  if(e.code === "KeyM"){
+    A.on = !A.on;
+    if(!A.on) stopAll();
+    else if(A.ready){
+      A.master.gain.setValueAtTime(0.22, A.ctx.currentTime);
+      var want = (G.scene === "fight") ? "battle" : (G.scene === "title" ? null : "menu");
+      if(want){ SEQ.name = null; playBgm(want); }
+    }
+  }
   keys[e.code] = true;
 });
 window.addEventListener("keyup", function(e){ keys[e.code] = false; });
@@ -418,6 +428,174 @@ function held(k){
   if(typeof k === "string") return !!keys[k];
   for(var i=0;i<k.length;i++) if(keys[k[i]]) return true;
   return false;
+}
+
+/* ============================================================
+   사운드 — 음원 파일 없이 파형을 직접 합성한다 (8비트 칩튠)
+   사각파 = 멜로디, 삼각파 = 베이스, 노이즈 = 드럼
+   ============================================================ */
+var A = {ctx:null, master:null, on:true, ready:false, noiseBuf:null};
+
+function initAudio(){
+  if(A.ready) return;
+  var C = window.AudioContext || window.webkitAudioContext;
+  if(!C) return;
+  try{
+    A.ctx = new C();
+    A.master = A.ctx.createGain();
+    A.master.gain.value = 0.22;
+    A.master.connect(A.ctx.destination);
+    // 드럼용 화이트 노이즈 버퍼를 한 번만 만들어 재사용
+    var len = Math.floor(A.ctx.sampleRate * 0.5);
+    var buf = A.ctx.createBuffer(1, len, A.ctx.sampleRate);
+    var ch = buf.getChannelData(0);
+    for(var i=0;i<len;i++) ch[i] = Math.random()*2 - 1;
+    A.noiseBuf = buf;
+    A.ready = true;
+  }catch(e){ A.ready = false; }
+}
+function audioOK(){
+  if(!A.ready || !A.on) return false;
+  if(A.ctx.state === "suspended") A.ctx.resume();
+  return true;
+}
+function midi(m){ return 440 * Math.pow(2, (m-69)/12); }
+
+/* 한 음 — 파형·주파수·길이·음량·감쇠 */
+function tone(freq, at, dur, type, vol, slideTo){
+  if(!audioOK()) return;
+  var t = at || A.ctx.currentTime;
+  var o = A.ctx.createOscillator(), g = A.ctx.createGain();
+  o.type = type || "square";
+  o.frequency.setValueAtTime(freq, t);
+  if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t+dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t+0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.connect(g); g.connect(A.master);
+  o.start(t); o.stop(t+dur+0.02);
+}
+
+/* 노이즈 한 방 — 드럼과 타격음 */
+function noise(at, dur, vol, hz, q){
+  if(!audioOK()) return;
+  var t = at || A.ctx.currentTime;
+  var s = A.ctx.createBufferSource(); s.buffer = A.noiseBuf;
+  var f = A.ctx.createBiquadFilter();
+  f.type = "bandpass"; f.frequency.value = hz || 1200; f.Q.value = q || 1;
+  var g = A.ctx.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  s.connect(f); f.connect(g); g.connect(A.master);
+  s.start(t); s.stop(t+dur+0.02);
+}
+
+/* ---- 효과음 ---- */
+function sfxSwing(heavy){
+  noise(0, heavy?0.14:0.08, heavy?0.30:0.20, heavy?600:1500, 0.8);
+  tone(heavy?260:420, 0, heavy?0.10:0.06, "sawtooth", 0.06, heavy?90:160);
+}
+function sfxHit(heavy){
+  noise(0, 0.14, 0.42, 380, 0.6);
+  tone(heavy?150:200, 0, 0.13, "square", 0.20, 55);
+}
+function sfxGuard(){
+  tone(1400, 0, 0.09, "square", 0.13, 900);
+  noise(0, 0.05, 0.12, 3200, 3);
+}
+function sfxJump(){ tone(330, 0, 0.13, "square", 0.11, 700); }
+function sfxShoot(){
+  tone(900, 0, 0.16, "sawtooth", 0.13, 180);
+  noise(0, 0.07, 0.10, 2200, 2);
+}
+function sfxSpecial(){
+  if(!audioOK()) return;
+  var t = A.ctx.currentTime, up = [0,4,7,12,16,19];
+  for(var i=0;i<up.length;i++)
+    tone(midi(64+up[i]), t+i*0.045, 0.12, "square", 0.13);
+}
+function sfxKO(){
+  if(!audioOK()) return;
+  var t = A.ctx.currentTime;
+  tone(300, t, 0.7, "sawtooth", 0.20, 60);
+  noise(t, 0.5, 0.28, 500, 0.7);
+}
+function sfxRound(){
+  if(!audioOK()) return;
+  var t = A.ctx.currentTime;
+  [72,76,79].forEach(function(n,i){
+    tone(midi(n), t+i*0.11, 0.16, "square", 0.16);
+  });
+}
+function sfxWin(){
+  if(!audioOK()) return;
+  var t = A.ctx.currentTime, mel = [72,76,79,84,79,84];
+  mel.forEach(function(n,i){
+    tone(midi(n), t+i*0.13, 0.22, "square", 0.17);
+    tone(midi(n-12), t+i*0.13, 0.22, "triangle", 0.13);
+  });
+}
+function sfxMenu(){ tone(880, 0, 0.05, "square", 0.10); }
+function sfxConfirm(){
+  if(!audioOK()) return;
+  var t = A.ctx.currentTime;
+  tone(660, t, 0.07, "square", 0.14);
+  tone(990, t+0.07, 0.14, "square", 0.14);
+}
+
+/* ---- 배경음악 ----
+   8분음표 격자에 멜로디·베이스·드럼을 얹은 단순 시퀀서.
+   -1 은 쉼표. 게임 루프에서 조금 앞당겨 예약한다. */
+var TRACKS = {
+  menu: {
+    bpm:112,
+    lead:[76,-1,79,-1,83,-1,79,-1, 81,-1,76,-1,72,-1,74,-1,
+          76,-1,79,-1,83,-1,86,-1, 84,-1,81,-1,79,-1,-1,-1],
+    bass:[45,-1,45,-1,52,-1,52,-1, 41,-1,41,-1,48,-1,48,-1,
+          43,-1,43,-1,50,-1,50,-1, 40,-1,40,-1,47,-1,47,-1],
+    kick:[1,0,0,0,1,0,0,0, 1,0,0,0,1,0,0,0, 1,0,0,0,1,0,0,0, 1,0,0,0,1,0,1,0],
+    hat: [0,1,0,1,0,1,0,1, 0,1,0,1,0,1,0,1, 0,1,0,1,0,1,0,1, 0,1,0,1,0,1,0,1]
+  },
+  battle: {
+    bpm:152,
+    lead:[76,79,81,79, 76,72,74,76, 79,81,84,81, 79,76,74,72,
+          77,81,84,81, 77,74,76,77, 79,83,86,83, 79,76,79,-1],
+    bass:[45,45,52,45, 41,41,48,41, 43,43,50,43, 40,40,47,47,
+          45,45,52,45, 41,41,48,41, 43,43,50,50, 45,45,45,-1],
+    kick:[1,0,0,1, 0,0,1,0, 1,0,0,1, 0,0,1,0, 1,0,0,1, 0,0,1,0, 1,0,0,1, 0,1,0,1],
+    snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,1],
+    hat: [1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1]
+  }
+};
+var SEQ = {name:null, step:0, next:0, playing:false};
+
+function playBgm(name){
+  if(SEQ.name === name) return;
+  SEQ.name = name; SEQ.step = 0; SEQ.playing = !!name;
+  if(A.ready) SEQ.next = A.ctx.currentTime + 0.06;
+}
+function stopBgm(){ SEQ.playing = false; SEQ.name = null; }
+function stopAll(){
+  SEQ.playing = false;
+  if(A.ready){ A.master.gain.cancelScheduledValues(A.ctx.currentTime);
+               A.master.gain.setValueAtTime(0, A.ctx.currentTime); }
+}
+
+function pumpBgm(){
+  if(!SEQ.playing || !audioOK()) return;
+  var tr = TRACKS[SEQ.name]; if(!tr) return;
+  var spb = 60 / tr.bpm / 2;                 // 8분음표 길이
+  var horizon = A.ctx.currentTime + 0.25;    // 미리 예약할 구간
+  var guard = 0;
+  while(SEQ.next < horizon && guard++ < 40){
+    var i = SEQ.step % tr.lead.length, t = SEQ.next;
+    if(tr.lead[i] >= 0) tone(midi(tr.lead[i]), t, spb*0.9, "square", 0.075);
+    if(tr.bass[i] >= 0) tone(midi(tr.bass[i]), t, spb*1.1, "triangle", 0.11);
+    if(tr.kick && tr.kick[i]) tone(120, t, 0.11, "sine", 0.30, 45);
+    if(tr.snare && tr.snare[i]) noise(t, 0.10, 0.16, 1600, 1.2);
+    if(tr.hat && tr.hat[i]) noise(t, 0.03, 0.045, 7000, 2.5);
+    SEQ.next += spb; SEQ.step++;
+  }
 }
 
 /* ============================================================
@@ -452,11 +630,13 @@ Fighter.prototype.startAttack = function(kind){
   if(this.busy()) return;
   this.state = "attack"; this.t = 0;
   this.atk = {kind:kind, spec:ATTACKS[kind], done:false};
+  sfxSwing(kind === "heavy");
 };
 
 Fighter.prototype.startSpecial = function(){
   if(this.busy() || this.gauge < this.d.spCost) return;
   this.gauge -= this.d.spCost;
+  sfxSpecial();
   this.state = "attack"; this.t = 0;
   this.atk = {kind:"sp", spec:{startup:14, active:4, recover:20, dmg:0,
               range:0, h:0, push:0, gauge:0}, done:false};
@@ -465,13 +645,14 @@ Fighter.prototype.startSpecial = function(){
 Fighter.prototype.hurt = function(dmg, dir, guarding){
   if(this.state === "ko") return 0;
   var real = guarding ? Math.max(1, Math.round(dmg*0.22)) : dmg;
+  if(guarding) sfxGuard(); else sfxHit(dmg > 10);
   this.hp -= real;
   this.gauge = Math.min(100, this.gauge + real*0.8);
   this.flash = 6;
   if(!guarding){
     this.state = "hit"; this.t = 0;
     this.vx = dir * 4.2;
-    if(this.hp <= 0){ this.hp = 0; this.state = "ko"; this.t = 0; this.vy = -7; }
+    if(this.hp <= 0){ this.hp = 0; this.state = "ko"; this.t = 0; this.vy = -7; sfxKO(); }
   } else {
     this.vx = dir * 1.6;
   }
@@ -503,6 +684,7 @@ function beginFight(){
   G.timer = 99*60; G.round = 1;
   G.scene = "fight";
   G.msg = "VS " + ROSTER[G.selP2].name; G.msgT = 110;
+  playBgm("battle"); sfxRound();
 }
 function resetRound(){
   G.p1.x = 300; G.p1.y = GROUND; G.p1.hp = G.p1.hpMax; G.p1.state="idle";
@@ -511,6 +693,7 @@ function resetRound(){
   G.p2.vx=0; G.p2.vy=0; G.p2.face=-1;
   G.projs = []; G.timer = 99*60;
   G.msg = "ROUND " + G.round; G.msgT = 90;
+  sfxRound();
 }
 
 /* ============================================================
@@ -588,7 +771,7 @@ function stepFighter(f, foe){
       if(inp.left && !inp.right){ f.vx = -sp; f.state = air ? "jump" : "walk"; }
       else if(inp.right && !inp.left){ f.vx = sp; f.state = air ? "jump" : "walk"; }
       else { f.vx = 0; if(!air) f.state = "idle"; }
-      if(inp.up && !air){ f.vy = -f.d.jump; f.state = "jump"; }
+      if(inp.up && !air){ f.vy = -f.d.jump; f.state = "jump"; if(f.human) sfxJump(); }
     }
   }
 
@@ -630,6 +813,7 @@ function fireSpecial(f, foe){
     }
     return;
   }
+  sfxShoot();
   G.projs.push({x:f.x + f.face*46, y:GROUND-56, vx:f.face*d.projSpeed,
                 owner:f, def:d, t:0, r:d.projR, dmg:d.projDmg*d.power});
 }
@@ -854,6 +1038,12 @@ function drawHud(){
     }
   }
 
+  ctx.textAlign = "right";
+  ctx.font = "600 12px ui-monospace, Menlo, monospace";
+  ctx.fillStyle = A.on ? "#4A5474" : "#FF8080";
+  ctx.fillText(A.on ? "♪ M 음소거" : "♪ 음소거 (M)", W-16, H-14);
+  ctx.textAlign = "center";
+
   if(G.msgT > 0){
     ctx.globalAlpha = Math.min(1, G.msgT/30);
     ctx.fillStyle = "#FFFFFF";
@@ -980,16 +1170,18 @@ function confirmPressed(){
 
 function sceneInput(){
   if(G.scene === "title"){
-    if(confirmPressed()) G.scene = "select";
+    if(confirmPressed()){ sfxConfirm(); G.scene = "select"; playBgm("menu"); }
   } else if(G.scene === "select"){
     var n = ROSTER.length;
+    var before = G.sel;
     if(pressed("ArrowLeft"))  G.sel = (G.sel + n - 1) % n;
     if(pressed("ArrowRight")) G.sel = (G.sel + 1) % n;
     if(pressed("ArrowUp"))    G.sel = (G.sel + n - COLS) % n;
     if(pressed("ArrowDown"))  G.sel = (G.sel + COLS) % n;
-    if(confirmPressed()) beginFight();
+    if(G.sel !== before) sfxMenu();
+    if(confirmPressed()){ sfxConfirm(); beginFight(); }
   } else if(G.scene === "result"){
-    if(confirmPressed()) G.scene = "select";
+    if(confirmPressed()){ sfxConfirm(); G.scene = "select"; playBgm("menu"); }
   }
 }
 
@@ -998,6 +1190,7 @@ function sceneInput(){
    ============================================================ */
 function update(){
   G.tick++;
+  pumpBgm();
   sceneInput();
 
   if(G.scene !== "fight") return;
@@ -1033,7 +1226,7 @@ function update(){
 
     if(G.p1.wins >= 2 || G.p2.wins >= 2){
       G.winner = G.p1.wins >= 2 ? G.p1 : G.p2;
-      setTimeout(function(){ G.scene = "result"; }, 1400);
+      setTimeout(function(){ G.scene = "result"; stopBgm(); sfxWin(); }, 1400);
     } else {
       G.round++;
       setTimeout(resetRound, 1400);
@@ -1085,6 +1278,6 @@ document.getElementById("hint").innerHTML =
   '<b>이동</b> <kbd>←</kbd><kbd>→</kbd> &nbsp; <b>점프</b> <kbd>↑</kbd> &nbsp; ' +
   '<b>가드</b> <kbd>↓</kbd> &nbsp;&nbsp; <b>약공격</b> <kbd>Z</kbd> &nbsp; ' +
   '<b>강공격</b> <kbd>X</kbd><kbd>W</kbd> &nbsp; <b>필살기</b> <kbd>C</kbd>' +
-  '<br>한글 입력 상태에서도 그대로 작동합니다. 상대는 컴퓨터가 맡습니다.';
+  '<br><b>음소거</b> <kbd>M</kbd> &nbsp; 한글 입력 상태에서도 그대로 작동합니다. 상대는 컴퓨터가 맡습니다.';
 })();
 </script>
