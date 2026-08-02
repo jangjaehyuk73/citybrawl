@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>지방도시 대전 — CITY BRAWL</title>
+<meta name="description" content="한국 지방도시의 상징물들이 벌이는 2D 대전 격투 게임">
+
+<meta name="color-scheme" content="dark">
+
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="지방도시 대전 — CITY BRAWL">
+<meta property="og:description" content="한국 지방도시의 상징물들이 벌이는 2D 대전 격투 게임">
+<meta property="og:locale" content="ko_KR">
+</head>
+<body>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:#0B0D14;color:#EDEFF5;
+  font-family:"Apple SD Gothic Neo","Pretendard","Noto Sans KR",system-ui,sans-serif;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+}
+#shell{width:100%;max-width:1000px;padding:14px}
+#stage{
+  width:100%;aspect-ratio:16/9;display:block;border-radius:10px;
+  background:#12141F;image-rendering:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px #262B3C;
+  touch-action:none;
+}
+.hint{
+  margin-top:12px;font-size:12.5px;line-height:1.9;color:#7C86A6;
+}
+.hint b{color:#C3CBE2;margin-right:2px}
+kbd{
+  font-family:ui-monospace,Menlo,monospace;font-size:11px;
+  background:#1D2130;border:1px solid #333A50;border-bottom-width:2px;
+  border-radius:4px;padding:1px 5px;color:#CBD2E5;
+}
+</style>
+
+<div id="shell">
+  <canvas id="stage" width="960" height="540"></canvas>
+  <div class="hint" id="hint"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var cv = document.getElementById("stage");
+var ctx = cv.getContext("2d");
+var W = 960, H = 540, GROUND = 452;
+
+/* ============================================================
+   캐릭터 정의 — 각자 실루엣과 필살기가 다르다
+   ============================================================ */
+var ROSTER = [
+  {
+    id:"harubang", name:"돌하르방", city:"제주", tag:"뚝심의 현무암",
+    hp:120, speed:2.5, power:1.25, jump:13.5,
+    c1:"#6E7480", c2:"#4A505C", c3:"#2E323C", ac:"#C9713F",
+    sp:"돌 던지기", spCost:50, projSpeed:7, projDmg:14, projR:13,
+    head:function(g,t){                       // 벙거지 모자 + 왕눈
+      g.fillStyle=this.c2; g.beginPath();
+      g.ellipse(0,-30,26,11,0,0,7); g.fill();
+      g.fillStyle=this.c1; g.beginPath();
+      g.moveTo(-19,-28); g.quadraticCurveTo(0,-52,19,-28); g.fill();
+      g.fillStyle=this.c1; g.beginPath();
+      g.ellipse(0,-8,20,22,0,0,7); g.fill();
+      g.fillStyle="#1A1D26";
+      g.beginPath(); g.ellipse(-8,-13,5.5,6,0,0,7); g.fill();
+      g.beginPath(); g.ellipse(8,-13,5.5,6,0,0,7); g.fill();
+      g.fillStyle=this.c3; g.beginPath();
+      g.ellipse(0,-1,7,4,0,0,7); g.fill();      // 코
+      g.strokeStyle=this.c3; g.lineWidth=2.5;
+      g.beginPath(); g.arc(0,4,7,0.15*Math.PI,0.85*Math.PI); g.stroke();
+    },
+    proj:function(g,t){
+      g.fillStyle="#767C88"; g.beginPath(); g.arc(0,0,11,0,7); g.fill();
+      g.fillStyle="#575D69";
+      g.beginPath(); g.arc(-3,-3,3.5,0,7); g.fill();
+      g.beginPath(); g.arc(4,2,2.5,0,7); g.fill();
+    }
+  },
+  {
+    id:"hahoe", name:"하회탈", city:"안동", tag:"웃음의 파동",
+    hp:96, speed:3.7, power:0.95, jump:15.5,
+    c1:"#D9A05B", c2:"#B87A3C", c3:"#6E4520", ac:"#C4432E",
+    sp:"파안대소", spCost:45, projSpeed:8.5, projDmg:11, projR:16,
+    head:function(g,t){
+      g.fillStyle=this.c1; g.beginPath();
+      g.ellipse(0,-12,21,25,0,0,7); g.fill();
+      g.fillStyle=this.c2; g.beginPath();          // 턱 분리선
+      g.ellipse(0,4,17,11,0,0,7); g.fill();
+      g.fillStyle="#241812";                        // 초승달 눈
+      g.beginPath(); g.arc(-8,-18,6,0.1*Math.PI,0.95*Math.PI); g.fill();
+      g.beginPath(); g.arc(8,-18,6,0.1*Math.PI,0.95*Math.PI); g.fill();
+      g.fillStyle=this.ac; g.beginPath();           // 웃는 입
+      g.ellipse(0,4,10,6,0,0,Math.PI); g.fill();
+      g.strokeStyle=this.c3; g.lineWidth=2;
+      g.beginPath(); g.arc(-9,-25,7,1.1*Math.PI,1.9*Math.PI); g.stroke();
+      g.beginPath(); g.arc(9,-25,7,1.1*Math.PI,1.9*Math.PI); g.stroke();
+    },
+    proj:function(g,t){
+      g.strokeStyle="#F0C070"; g.lineWidth=3;
+      for(var i=0;i<3;i++){
+        g.globalAlpha=1-i*0.28;
+        g.beginPath(); g.arc(-i*7,0,7+i*4,-0.6,0.6); g.stroke();
+      }
+      g.globalAlpha=1;
+    }
+  },
+  {
+    id:"turtle", name:"거북선", city:"통영", tag:"무적의 철갑",
+    hp:140, speed:2.1, power:1.15, jump:11.5,
+    c1:"#3E5C4A", c2:"#2A4034", c3:"#1A2620", ac:"#C9A227",
+    sp:"화포 발사", spCost:55, projSpeed:9.5, projDmg:17, projR:11,
+    head:function(g,t){
+      g.fillStyle=this.c2; g.beginPath();           // 용머리
+      g.moveTo(-14,-6);
+      g.quadraticCurveTo(2,-34,26,-20);
+      g.quadraticCurveTo(18,-4,-14,8);
+      g.closePath(); g.fill();
+      g.fillStyle=this.ac; g.beginPath();
+      g.ellipse(12,-19,4,4.5,0,0,7); g.fill();
+      g.fillStyle="#8C2E20"; g.beginPath();         // 입에서 나오는 불씨
+      g.moveTo(24,-19); g.lineTo(34,-16); g.lineTo(24,-13); g.fill();
+      g.fillStyle=this.c3;
+      for(var i=-1;i<2;i++){ g.beginPath();
+        g.moveTo(-2+i*8,-28); g.lineTo(2+i*8,-36); g.lineTo(6+i*8,-28); g.fill(); }
+    },
+    proj:function(g,t){
+      g.fillStyle="#2B2F38"; g.beginPath(); g.arc(0,0,9,0,7); g.fill();
+      g.fillStyle="#FF9A3C"; g.globalAlpha=.85;
+      g.beginPath(); g.arc(-11,0,6+Math.sin(t*0.5)*2,0,7); g.fill();
+      g.globalAlpha=1;
+    }
+  },
+  {
+    id:"hand", name:"상생의 손", city:"포항", tag:"바다에서 솟은 리치",
+    hp:104, speed:2.9, power:1.1, jump:14,
+    c1:"#9AA6B4", c2:"#727E8C", c3:"#4A5460", ac:"#4FA3C7",
+    reach:1.35,
+    head:function(g,t){
+      g.fillStyle=this.c1;
+      for(var i=0;i<4;i++){                          // 손가락
+        g.save(); g.translate(-12+i*8,-16); g.rotate((i-1.5)*0.13);
+        g.beginPath(); g.roundRect(-3.5,-22,7,26,3.5); g.fill(); g.restore();
+      }
+      g.fillStyle=this.c2; g.beginPath();
+      g.roundRect(-16,-18,32,22,7); g.fill();
+      g.fillStyle=this.ac; g.globalAlpha=.5;
+      g.beginPath(); g.ellipse(0,6,20,5,0,0,7); g.fill(); g.globalAlpha=1;
+    },
+    sp:"해맞이 일격", spCost:50, projSpeed:0, projDmg:22, projR:0,
+    proj:function(g,t){
+      g.fillStyle="#FFD27A"; g.globalAlpha=.75;
+      g.beginPath(); g.arc(0,0,22+Math.sin(t*0.4)*4,0,7); g.fill();
+      g.globalAlpha=1;
+    }
+  },
+  {
+    id:"gull", name:"갈매기", city:"부산", tag:"하늘에서 온 속공",
+    hp:88, speed:4.2, power:0.85, jump:17,
+    c1:"#E8EDF4", c2:"#B9C3D0", c3:"#4A5260", ac:"#E8A33D",
+    sp:"급강하", spCost:40, projSpeed:11, projDmg:10, projR:12,
+    head:function(g,t){
+      g.fillStyle=this.c1; g.beginPath();
+      g.ellipse(0,-14,17,15,0,0,7); g.fill();
+      g.fillStyle=this.c3; g.beginPath();
+      g.arc(6,-18,3.2,0,7); g.fill();
+      g.fillStyle=this.ac; g.beginPath();            // 부리
+      g.moveTo(14,-14); g.lineTo(30,-10); g.lineTo(14,-7); g.fill();
+      g.fillStyle=this.c2; g.beginPath();            // 날개
+      g.moveTo(-10,-8);
+      g.quadraticCurveTo(-34,-16+Math.sin(t*0.3)*6,-26,6);
+      g.quadraticCurveTo(-16,-2,-8,2); g.fill();
+    },
+    proj:function(g,t){
+      g.fillStyle="#EAF2FF"; g.beginPath();
+      g.moveTo(12,0); g.lineTo(-10,-8); g.lineTo(-5,0); g.lineTo(-10,8); g.fill();
+    }
+  },
+  {
+    id:"soboro", name:"튀김소보로", city:"대전", tag:"달콤한 기습",
+    hp:100, speed:3.3, power:1.0, jump:14.5,
+    c1:"#C98A4B", c2:"#A96C33", c3:"#6B3F17", ac:"#F2D8A7",
+    sp:"소보로 폭격", spCost:45, projSpeed:6.5, projDmg:12, projR:14,
+    head:function(g,t){
+      g.fillStyle=this.c1; g.beginPath();
+      g.ellipse(0,-12,22,20,0,0,7); g.fill();
+      g.fillStyle=this.c2;
+      var pts=[[-11,-20],[3,-24],[13,-15],[-6,-8],[9,-4],[-15,-9]];
+      for(var i=0;i<pts.length;i++){ g.beginPath();
+        g.arc(pts[i][0],pts[i][1],4.2,0,7); g.fill(); }
+      g.fillStyle="#2A1A0C";
+      g.beginPath(); g.arc(-7,-13,3,0,7); g.fill();
+      g.beginPath(); g.arc(7,-13,3,0,7); g.fill();
+      g.fillStyle=this.ac; g.beginPath();
+      g.ellipse(0,-3,6,3,0,0,7); g.fill();
+    },
+    proj:function(g,t){
+      g.fillStyle="#C98A4B"; g.beginPath(); g.arc(0,0,10,0,7); g.fill();
+      g.fillStyle="#8A5A28";
+      g.beginPath(); g.arc(-3,-3,3,0,7); g.fill();
+      g.beginPath(); g.arc(3,3,2.5,0,7); g.fill();
+    }
+  }
+];
+
+/* ============================================================
+   입력
+   ============================================================ */
+var keys = {};
+window.addEventListener("keydown", function(e){
+  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].indexOf(e.key)>=0) e.preventDefault();
+  keys[e.key.toLowerCase()] = true;
+  if(e.key === " ") keys["space"] = true;
+});
+window.addEventListener("keyup", function(e){
+  keys[e.key.toLowerCase()] = false;
+  if(e.key === " ") keys["space"] = false;
+});
+
+var P1 = {left:"a", right:"d", up:"w", guard:"s", light:"j", heavy:"k", sp:"l"};
+var P2 = {left:"arrowleft", right:"arrowright", up:"arrowup", guard:"arrowdown",
+          light:"1", heavy:"2", sp:"3"};
+
+/* ============================================================
+   파이터
+   ============================================================ */
+function Fighter(def, x, faceRight, human, pad){
+  this.d = def;
+  this.x = x; this.y = GROUND; this.vx = 0; this.vy = 0;
+  this.face = faceRight ? 1 : -1;
+  this.hpMax = def.hp; this.hp = def.hp;
+  this.gauge = 0;
+  this.state = "idle";      // idle walk jump attack guard hit ko
+  this.t = 0;               // 상태 타이머
+  this.atk = null;          // 진행 중인 공격
+  this.hitLock = 0;         // 같은 공격에 여러 번 맞지 않도록
+  this.human = human; this.pad = pad;
+  this.ai = {think:0, want:"idle"};
+  this.flash = 0;
+  this.wins = 0;
+}
+
+var ATTACKS = {
+  light: {startup:5, active:5, recover:9, dmg:6, range:62, h:-34, push:2.2, gauge:7},
+  heavy: {startup:11, active:6, recover:18, dmg:13, range:74, h:-24, push:5, gauge:11},
+};
+
+Fighter.prototype.busy = function(){
+  return this.state === "attack" || this.state === "hit" || this.state === "ko";
+};
+
+Fighter.prototype.startAttack = function(kind){
+  if(this.busy()) return;
+  this.state = "attack"; this.t = 0;
+  this.atk = {kind:kind, spec:ATTACKS[kind], done:false};
+};
+
+Fighter.prototype.startSpecial = function(){
+  if(this.busy() || this.gauge < this.d.spCost) return;
+  this.gauge -= this.d.spCost;
+  this.state = "attack"; this.t = 0;
+  this.atk = {kind:"sp", spec:{startup:14, active:4, recover:20, dmg:0,
+              range:0, h:0, push:0, gauge:0}, done:false};
+};
+
+Fighter.prototype.hurt = function(dmg, dir, guarding){
+  if(this.state === "ko") return 0;
+  var real = guarding ? Math.max(1, Math.round(dmg*0.22)) : dmg;
+  this.hp -= real;
+  this.gauge = Math.min(100, this.gauge + real*0.8);
+  this.flash = 6;
+  if(!guarding){
+    this.state = "hit"; this.t = 0;
+    this.vx = dir * 4.2;
+    if(this.hp <= 0){ this.hp = 0; this.state = "ko"; this.t = 0; this.vy = -7; }
+  } else {
+    this.vx = dir * 1.6;
+  }
+  return real;
+};
+
+/* ============================================================
+   경기 상태
+   ============================================================ */
+var G = {
+  scene:"title",     // title select fight result
+  twoPlayer:false, winner:null,
+  sel:0, selP2:2,
+  p1:null, p2:null,
+  projs:[], fx:[],
+  timer:99*60, msg:"", msgT:0, round:1,
+  shake:0, freeze:0, tick:0
+};
+
+function beginFight(){
+  G.p1 = new Fighter(ROSTER[G.sel], 300, true, true, P1);
+  G.p2 = new Fighter(ROSTER[G.selP2], 660, false, G.twoPlayer, P2);
+  G.projs = []; G.fx = [];
+  G.timer = 99*60; G.round = 1;
+  G.scene = "fight"; G.msg = "ROUND 1"; G.msgT = 90;
+}
+function resetRound(){
+  G.p1.x = 300; G.p1.y = GROUND; G.p1.hp = G.p1.hpMax; G.p1.state="idle";
+  G.p1.vx=0; G.p1.vy=0; G.p1.face=1;
+  G.p2.x = 660; G.p2.y = GROUND; G.p2.hp = G.p2.hpMax; G.p2.state="idle";
+  G.p2.vx=0; G.p2.vy=0; G.p2.face=-1;
+  G.projs = []; G.timer = 99*60;
+  G.msg = "ROUND " + G.round; G.msgT = 90;
+}
+
+/* ============================================================
+   AI
+   ============================================================ */
+function driveAI(me, foe){
+  var dist = Math.abs(foe.x - me.x);
+  me.ai.think--;
+  if(me.ai.think <= 0){
+    me.ai.think = 14 + Math.random()*22;
+    var r = Math.random();
+    if(dist > 260) me.ai.want = r < 0.75 ? "approach" : "sp";
+    else if(dist > 110) me.ai.want = r < 0.5 ? "approach" : (r < 0.75 ? "sp" : "back");
+    else me.ai.want = r < 0.42 ? "light" : (r < 0.62 ? "heavy" :
+                     (r < 0.82 ? "guard" : "back"));
+  }
+  var w = me.ai.want, dir = foe.x > me.x ? 1 : -1;
+  var out = {left:false,right:false,up:false,guard:false,light:false,heavy:false,sp:false};
+  if(w === "approach"){ if(dir>0) out.right = true; else out.left = true; }
+  else if(w === "back"){ if(dir>0) out.left = true; else out.right = true; }
+  else if(w === "guard") out.guard = true;
+  else if(w === "light") out.light = true;
+  else if(w === "heavy") out.heavy = true;
+  else if(w === "sp") out.sp = true;
+  // 날아오는 것이 있으면 방어 확률을 높인다
+  for(var i=0;i<G.projs.length;i++){
+    var p = G.projs[i];
+    if(p.owner !== me && Math.abs(p.x-me.x) < 190 &&
+       ((p.vx>0 && p.x<me.x) || (p.vx<0 && p.x>me.x))){
+      if(Math.random() < 0.55){ out.guard = true; out.light = out.heavy = false; }
+    }
+  }
+  return out;
+}
+
+function readInput(f, foe){
+  if(f.human){
+    var p = f.pad;
+    return {left:!!keys[p.left], right:!!keys[p.right], up:!!keys[p.up],
+            guard:!!keys[p.guard], light:!!keys[p.light],
+            heavy:!!keys[p.heavy], sp:!!keys[p.sp]};
+  }
+  return driveAI(f, foe);
+}
+
+/* ============================================================
+   물리·판정
+   ============================================================ */
+function stepFighter(f, foe){
+  var inp = readInput(f, foe);
+  f.t++;
+
+  if(f.state === "ko"){
+    f.vy += 0.6; f.y += f.vy; f.x += f.vx; f.vx *= 0.9;
+    if(f.y > GROUND){ f.y = GROUND; f.vy = 0; f.vx = 0; }
+    return;
+  }
+  if(f.state === "hit"){
+    f.x += f.vx; f.vx *= 0.86;
+    if(f.t > 16){ f.state = "idle"; f.t = 0; }
+  }
+
+  var air = f.y < GROUND;
+  var guarding = inp.guard && !air && f.state !== "attack" && f.state !== "hit";
+
+  if(f.state !== "attack" && f.state !== "hit"){
+    if(inp.sp) f.startSpecial();
+    else if(inp.heavy) f.startAttack("heavy");
+    else if(inp.light) f.startAttack("light");
+  }
+
+  if(f.state !== "attack" && f.state !== "hit"){
+    if(guarding){ f.state = "guard"; f.vx = 0; }
+    else {
+      var sp = f.d.speed;
+      if(inp.left && !inp.right){ f.vx = -sp; f.state = air ? "jump" : "walk"; }
+      else if(inp.right && !inp.left){ f.vx = sp; f.state = air ? "jump" : "walk"; }
+      else { f.vx = 0; if(!air) f.state = "idle"; }
+      if(inp.up && !air){ f.vy = -f.d.jump; f.state = "jump"; }
+    }
+  }
+
+  // 공격 진행
+  if(f.state === "attack"){
+    var a = f.atk, s = a.spec;
+    f.vx *= 0.8;
+    if(a.kind === "sp" && f.t === s.startup && !a.done){
+      a.done = true; fireSpecial(f, foe);
+    }
+    if(f.t > s.startup + s.active + s.recover){
+      f.state = "idle"; f.t = 0; f.atk = null;
+    }
+  }
+
+  // 중력·이동
+  f.vy += 0.62; f.y += f.vy; f.x += f.vx;
+  if(f.y >= GROUND){ f.y = GROUND; f.vy = 0; if(f.state==="jump") f.state = "idle"; }
+  f.x = Math.max(60, Math.min(W-60, f.x));
+
+  if(f.state !== "attack" && f.state !== "hit" && f.state !== "ko")
+    f.face = foe.x > f.x ? 1 : -1;
+
+  if(f.flash > 0) f.flash--;
+  f.guarding = guarding;
+}
+
+function fireSpecial(f, foe){
+  var d = f.d;
+  if(d.projSpeed === 0){
+    // 근접 폭발형 (상생의 손)
+    G.fx.push({x:f.x + f.face*70, y:GROUND-40, t:0, life:26, kind:"burst", owner:f});
+    var dist = Math.abs(foe.x - (f.x + f.face*70));
+    if(dist < 90){
+      var g = foe.guarding;
+      var got = foe.hurt(d.projDmg * d.power, f.face, g);
+      G.shake = 12; G.freeze = 5;
+      G.fx.push({x:foe.x, y:GROUND-60, t:0, life:16, kind:"hit", n:got});
+    }
+    return;
+  }
+  G.projs.push({x:f.x + f.face*46, y:GROUND-56, vx:f.face*d.projSpeed,
+                owner:f, def:d, t:0, r:d.projR, dmg:d.projDmg*d.power});
+}
+
+function attackBox(f){
+  if(f.state !== "attack" || !f.atk || f.atk.kind === "sp") return null;
+  var s = f.atk.spec;
+  if(f.t < s.startup || f.t > s.startup + s.active) return null;
+  var reach = (f.d.reach || 1);
+  return {x:f.x + f.face*(26 + s.range*reach*0.5), y:f.y + s.h,
+          w:s.range*reach, h:44, dmg:s.dmg*f.d.power, push:s.push, gauge:s.gauge};
+}
+
+function bodyBox(f){ return {x:f.x, y:f.y-46, w:56, h:92}; }
+
+function overlap(a,b){
+  return Math.abs(a.x-b.x) < (a.w+b.w)/2 && Math.abs(a.y-b.y) < (a.h+b.h)/2;
+}
+
+function resolveHits(a, b){
+  var box = attackBox(a);
+  if(!box) return;
+  if(a.atk.hitDone) return;
+  if(overlap(box, bodyBox(b))){
+    a.atk.hitDone = true;
+    var g = b.guarding;
+    var got = b.hurt(box.dmg, a.face, g);
+    a.gauge = Math.min(100, a.gauge + box.gauge);
+    G.shake = g ? 3 : 8; G.freeze = g ? 2 : 4;
+    G.fx.push({x:box.x, y:box.y, t:0, life:14, kind:g?"guard":"hit", n:got});
+  }
+}
+
+function stepProjectiles(){
+  for(var i=G.projs.length-1;i>=0;i--){
+    var p = G.projs[i]; p.t++; p.x += p.vx;
+    if(p.x < -40 || p.x > W+40){ G.projs.splice(i,1); continue; }
+    var foe = p.owner === G.p1 ? G.p2 : G.p1;
+    if(overlap({x:p.x,y:p.y,w:p.r*2,h:p.r*2}, bodyBox(foe))){
+      var g = foe.guarding;
+      var got = foe.hurt(p.dmg, p.vx>0?1:-1, g);
+      G.shake = g?4:9; G.freeze = 3;
+      G.fx.push({x:p.x, y:p.y, t:0, life:16, kind:g?"guard":"hit", n:got});
+      G.projs.splice(i,1);
+    }
+  }
+}
+
+/* ============================================================
+   그리기
+   ============================================================ */
+function roundRectPath(g,x,y,w,h,r){
+  g.beginPath();
+  g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
+}
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    roundRectPath(this,x,y,w,h,r); return this;
+  };
+}
+
+function drawBg(){
+  var g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"#1B2138"); g.addColorStop(0.6,"#232A44"); g.addColorStop(1,"#2E3757");
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  // 먼 산
+  ctx.fillStyle = "#1A2036";
+  for(var i=0;i<7;i++){
+    var bx = i*160-40, bh = 90+((i*37)%60);
+    ctx.beginPath(); ctx.moveTo(bx,GROUND);
+    ctx.lineTo(bx+80,GROUND-bh); ctx.lineTo(bx+170,GROUND); ctx.fill();
+  }
+  // 도시 실루엣
+  ctx.fillStyle = "#151A2C";
+  for(var j=0;j<16;j++){
+    var w = 40+((j*53)%36), h = 60+((j*71)%120);
+    ctx.fillRect(j*62-20, GROUND-h, w, h);
+  }
+  ctx.fillStyle = "#3A4468"; ctx.fillRect(0,GROUND,W,H-GROUND);
+  ctx.fillStyle = "#2B3352"; ctx.fillRect(0,GROUND,W,6);
+}
+
+function drawFighter(f){
+  var g = ctx, d = f.d;
+  g.save();
+  g.translate(f.x, f.y);
+  g.scale(f.face, 1);
+
+  var t = G.tick, bob = 0, lean = 0, armF = 0, armB = 0, legS = 0;
+  if(f.state === "idle"){ bob = Math.sin(t*0.08)*2; }
+  else if(f.state === "walk"){ bob = Math.abs(Math.sin(t*0.22))*3; legS = Math.sin(t*0.22)*10; }
+  else if(f.state === "jump"){ legS = 6; lean = -0.12; }
+  else if(f.state === "guard"){ armF = -18; lean = -0.08; }
+  else if(f.state === "hit"){ lean = 0.22; bob = 2; }
+  else if(f.state === "ko"){ lean = 1.35; }
+  else if(f.state === "attack"){
+    var s = f.atk.spec, p = f.t / (s.startup+s.active+s.recover);
+    if(f.t < s.startup) armF = -12*(f.t/s.startup);
+    else if(f.t < s.startup+s.active) armF = 34;
+    else armF = 34*(1-(f.t-s.startup-s.active)/s.recover);
+    lean = 0.06;
+    if(f.atk.kind === "sp") armF = Math.max(armF, 26);
+  }
+
+  g.rotate(lean*0.35);
+  g.translate(0, bob);
+
+  // 그림자
+  g.save(); g.rotate(-lean*0.35);
+  g.fillStyle = "rgba(0,0,0,.34)";
+  g.beginPath(); g.ellipse(0, GROUND-f.y+2, 30, 8, 0, 0, 7); g.fill();
+  g.restore();
+
+  var flash = f.flash > 0 && (f.flash % 4 < 2);
+
+  // 다리
+  g.strokeStyle = d.c3; g.lineWidth = 11; g.lineCap = "round";
+  g.beginPath(); g.moveTo(-6,-16); g.lineTo(-8-legS*0.6, -2 + (f.y<GROUND?-6:0)); g.stroke();
+  g.beginPath(); g.moveTo(7,-16); g.lineTo(9+legS*0.6, -2 + (f.y<GROUND?-4:0)); g.stroke();
+
+  // 몸통
+  g.fillStyle = flash ? "#FFFFFF" : d.c1;
+  roundRectPath(g, -20, -52, 40, 40, 13); g.fill();
+  g.fillStyle = flash ? "#FFFFFF" : d.c2;
+  roundRectPath(g, -14, -30, 28, 16, 7); g.fill();
+
+  // 뒷팔
+  g.strokeStyle = d.c2; g.lineWidth = 9;
+  g.beginPath(); g.moveTo(-12,-44); g.lineTo(-24, -30 + armB); g.stroke();
+  // 앞팔 (공격에 따라 뻗음)
+  g.strokeStyle = flash ? "#FFFFFF" : d.c1; g.lineWidth = 10;
+  g.beginPath(); g.moveTo(12,-44);
+  g.lineTo(16 + armF*1.5, -40 + (armF>0? -2 : 6)); g.stroke();
+  if(armF > 20){
+    g.fillStyle = d.ac;
+    g.beginPath(); g.arc(16+armF*1.5, -42, 8, 0, 7); g.fill();
+  }
+
+  // 머리 (캐릭터 고유)
+  g.save(); g.translate(0,-52);
+  if(flash){ g.globalAlpha = 0.55; }
+  d.head.call(d, g, t);
+  g.globalAlpha = 1;
+  g.restore();
+
+  // 가드 방패
+  if(f.guarding){
+    g.strokeStyle = "rgba(120,190,255,.85)"; g.lineWidth = 3;
+    g.beginPath(); g.arc(14,-34, 30, -1.1, 1.1); g.stroke();
+  }
+  g.restore();
+}
+
+function drawProjectiles(){
+  for(var i=0;i<G.projs.length;i++){
+    var p = G.projs[i];
+    ctx.save(); ctx.translate(p.x, p.y);
+    ctx.scale(p.vx > 0 ? 1 : -1, 1);
+    p.def.proj.call(p.def, ctx, p.t);
+    ctx.restore();
+  }
+}
+
+function drawFx(){
+  for(var i=G.fx.length-1;i>=0;i--){
+    var e = G.fx[i]; e.t++;
+    var k = e.t/e.life;
+    ctx.save(); ctx.translate(e.x, e.y);
+    if(e.kind === "hit"){
+      ctx.globalAlpha = 1-k;
+      ctx.strokeStyle = "#FFE58A"; ctx.lineWidth = 3;
+      for(var j=0;j<6;j++){
+        var a = j*1.047 + e.t*0.1, r1 = 8+k*26, r2 = 18+k*36;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*r1, Math.sin(a)*r1);
+        ctx.lineTo(Math.cos(a)*r2, Math.sin(a)*r2); ctx.stroke();
+      }
+      if(e.n){
+        ctx.globalAlpha = 1-k*0.8;
+        ctx.fillStyle = "#FFF3C4"; ctx.font = "bold 20px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText(e.n, 0, -20-k*26);
+      }
+    } else if(e.kind === "guard"){
+      ctx.globalAlpha = 1-k;
+      ctx.strokeStyle = "#7FC4FF"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0,0, 14+k*22, -1.2, 1.2); ctx.stroke();
+    } else if(e.kind === "burst"){
+      ctx.globalAlpha = (1-k)*0.9;
+      var gr = ctx.createRadialGradient(0,0,4,0,0,50+k*40);
+      gr.addColorStop(0,"#FFF0B8"); gr.addColorStop(1,"rgba(255,180,60,0)");
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(0,0,50+k*40,0,7); ctx.fill();
+    }
+    ctx.restore();
+    if(e.t >= e.life) G.fx.splice(i,1);
+  }
+}
+
+function drawHud(){
+  ctx.textAlign = "left";
+  drawGauge(28, 26, 380, G.p1, false);
+  drawGauge(W-28-380, 26, 380, G.p2, true);
+
+  // 타이머
+  var sec = Math.max(0, Math.ceil(G.timer/60));
+  ctx.fillStyle = "#0E1220"; roundRectPath(ctx, W/2-44, 20, 88, 52, 10); ctx.fill();
+  ctx.strokeStyle = "#39415F"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = sec <= 10 ? "#FF8080" : "#F2F5FF";
+  ctx.font = "bold 34px ui-monospace, Menlo, monospace";
+  ctx.textAlign = "center"; ctx.fillText(sec, W/2, 57);
+
+  // 라운드 승수
+  for(var i=0;i<2;i++){
+    var f = i ? G.p2 : G.p1;
+    for(var w=0;w<2;w++){
+      var cx2 = i ? W-38-w*20 : 38+w*20;
+      ctx.beginPath(); ctx.arc(cx2, 86, 6, 0, 7);
+      ctx.fillStyle = f.wins > w ? "#FFD35C" : "#39415F"; ctx.fill();
+    }
+  }
+
+  if(G.msgT > 0){
+    ctx.globalAlpha = Math.min(1, G.msgT/30);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "800 54px system-ui"; ctx.textAlign = "center";
+    ctx.fillText(G.msg, W/2, H/2 - 40);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawGauge(x, y, w, f, right){
+  ctx.fillStyle = "#0E1220"; roundRectPath(ctx, x-3, y-3, w+6, 34, 7); ctx.fill();
+  ctx.strokeStyle = "#39415F"; ctx.lineWidth = 2; ctx.stroke();
+  var hp = Math.max(0, f.hp/f.hpMax);
+  ctx.fillStyle = "#2A3049"; roundRectPath(ctx, x, y, w, 28, 5); ctx.fill();
+  var col = hp > 0.5 ? "#4ED88A" : (hp > 0.22 ? "#FFC24D" : "#FF6B6B");
+  ctx.fillStyle = col;
+  if(right){ roundRectPath(ctx, x+w*(1-hp), y, w*hp, 28, 5); }
+  else { roundRectPath(ctx, x, y, w*hp, 28, 5); }
+  ctx.fill();
+
+  // 필살 게이지
+  var gy = y + 32;
+  ctx.fillStyle = "#1A1F33"; roundRectPath(ctx, x, gy, w*0.55, 8, 4); ctx.fill();
+  ctx.fillStyle = f.gauge >= f.d.spCost ? "#7FD8FF" : "#46527A";
+  roundRectPath(ctx, x, gy, w*0.55*(f.gauge/100), 8, 4); ctx.fill();
+
+  ctx.fillStyle = "#DDE3F5"; ctx.font = "600 15px system-ui";
+  ctx.textAlign = right ? "right" : "left";
+  ctx.fillText(f.d.name + "  ·  " + f.d.city, right ? x+w : x, gy+28);
+}
+
+/* ============================================================
+   타이틀 · 캐릭터 선택
+   ============================================================ */
+function drawTitle(){
+  drawBg();
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#FFFFFF"; ctx.font = "800 66px system-ui";
+  ctx.fillText("지방도시 대전", W/2, 200);
+  ctx.fillStyle = "#8FA0C8"; ctx.font = "600 20px system-ui";
+  ctx.fillText("CITY BRAWL — 상징물들의 싸움", W/2, 240);
+
+  // 미리보기로 캐릭터 몇 개 세워 둔다
+  for(var i=0;i<ROSTER.length;i++){
+    var d = ROSTER[i];
+    ctx.save();
+    ctx.translate(140 + i*137, 400 + Math.sin(G.tick*0.05 + i)*4);
+    ctx.scale(0.9, 0.9);
+    ctx.fillStyle = "rgba(0,0,0,.3)";
+    ctx.beginPath(); ctx.ellipse(0,4,26,7,0,0,7); ctx.fill();
+    ctx.fillStyle = d.c1; roundRectPath(ctx,-18,-46,36,36,12); ctx.fill();
+    ctx.save(); ctx.translate(0,-46); d.head.call(d, ctx, G.tick); ctx.restore();
+    ctx.restore();
+  }
+
+  ctx.fillStyle = (G.tick % 60 < 40) ? "#FFD35C" : "#8A7A3C";
+  ctx.font = "700 22px system-ui";
+  ctx.fillText("SPACE  를 눌러 시작", W/2, 500);
+}
+
+function drawSelect(){
+  drawBg();
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#FFFFFF"; ctx.font = "800 34px system-ui";
+  ctx.fillText("캐릭터 선택", W/2, 62);
+  ctx.fillStyle = "#8FA0C8"; ctx.font = "500 15px system-ui";
+  ctx.fillText(G.twoPlayer ? "1P: A/D 로 이동, J 로 결정   ·   2P: ←/→ 이동, 1 로 결정"
+                           : "A/D 또는 ←/→ 로 고르고 SPACE 로 시작", W/2, 90);
+
+  var cols = 3, cw = 260, ch = 150, ox = (W - cols*cw)/2, oy = 120;
+  for(var i=0;i<ROSTER.length;i++){
+    var d = ROSTER[i];
+    var cx2 = ox + (i%cols)*cw, cy2 = oy + Math.floor(i/cols)*ch;
+    var on1 = (i === G.sel), on2 = (i === G.selP2);
+    ctx.fillStyle = "#171D30";
+    roundRectPath(ctx, cx2+8, cy2+8, cw-16, ch-16, 12); ctx.fill();
+    ctx.lineWidth = on1||on2 ? 3 : 1.5;
+    ctx.strokeStyle = on1 ? "#FFD35C" : (on2 ? "#7FD8FF" : "#333B58");
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx2+62, cy2+ch-46);
+    ctx.fillStyle = d.c1; roundRectPath(ctx,-17,-42,34,34,11); ctx.fill();
+    ctx.save(); ctx.translate(0,-42); d.head.call(d, ctx, G.tick); ctx.restore();
+    ctx.restore();
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#FFFFFF"; ctx.font = "700 19px system-ui";
+    ctx.fillText(d.name, cx2+108, cy2+52);
+    ctx.fillStyle = "#8FA0C8"; ctx.font = "500 13px system-ui";
+    ctx.fillText(d.city + " · " + d.tag, cx2+108, cy2+72);
+    ctx.fillStyle = "#6E7B9E"; ctx.font = "500 12px system-ui";
+    ctx.fillText("체력 " + d.hp + "  속도 " + d.speed.toFixed(1), cx2+108, cy2+94);
+    ctx.fillStyle = "#FFD35C"; ctx.font = "600 12px system-ui";
+    ctx.fillText("필살기 " + d.sp, cx2+108, cy2+114);
+    ctx.textAlign = "center";
+  }
+
+  ctx.fillStyle = "#8FA0C8"; ctx.font = "500 14px system-ui";
+  ctx.fillText("T 를 누르면 " + (G.twoPlayer ? "1인용(CPU)" : "2인 대전") + " 으로 전환", W/2, H-22);
+}
+
+/* ============================================================
+   장면 전환 입력
+   ============================================================ */
+var edge = {};
+function pressed(k){
+  var now = !!keys[k];
+  var was = !!edge[k];
+  edge[k] = now;
+  return now && !was;
+}
+
+function sceneInput(){
+  if(G.scene === "title"){
+    if(pressed("space")){ G.scene = "select"; }
+  } else if(G.scene === "select"){
+    if(pressed("t")) G.twoPlayer = !G.twoPlayer;
+    if(pressed("a")) G.sel = (G.sel + ROSTER.length - 1) % ROSTER.length;
+    if(pressed("d")) G.sel = (G.sel + 1) % ROSTER.length;
+    if(!G.twoPlayer){
+      if(pressed("arrowleft")) G.sel = (G.sel + ROSTER.length - 1) % ROSTER.length;
+      if(pressed("arrowright")) G.sel = (G.sel + 1) % ROSTER.length;
+      if(pressed("space") || pressed("j")){
+        G.selP2 = Math.floor(Math.random()*ROSTER.length);
+        beginFight();
+      }
+    } else {
+      if(pressed("arrowleft")) G.selP2 = (G.selP2 + ROSTER.length - 1) % ROSTER.length;
+      if(pressed("arrowright")) G.selP2 = (G.selP2 + 1) % ROSTER.length;
+      if(pressed("j") || pressed("1") || pressed("space")) beginFight();
+    }
+  } else if(G.scene === "result"){
+    if(pressed("space")){ G.scene = "select"; }
+  }
+}
+
+/* ============================================================
+   메인 루프
+   ============================================================ */
+function update(){
+  G.tick++;
+  sceneInput();
+
+  if(G.scene !== "fight") return;
+  if(G.freeze > 0){ G.freeze--; return; }
+
+  if(G.msgT > 0){ G.msgT--; if(G.msgT > 40) return; }
+
+  stepFighter(G.p1, G.p2);
+  stepFighter(G.p2, G.p1);
+  resolveHits(G.p1, G.p2);
+  resolveHits(G.p2, G.p1);
+  stepProjectiles();
+
+  // 몸이 겹치지 않게 밀어낸다
+  var dx = G.p2.x - G.p1.x;
+  if(Math.abs(dx) < 52){
+    var push = (52 - Math.abs(dx))/2 * (dx >= 0 ? 1 : -1);
+    G.p1.x -= push; G.p2.x += push;
+  }
+
+  G.timer--;
+  var over = G.p1.hp <= 0 || G.p2.hp <= 0 || G.timer <= 0;
+  if(over && G.msgT <= 0){
+    var w = null;
+    if(G.p1.hp <= 0 && G.p2.hp <= 0) w = null;
+    else if(G.p1.hp <= 0) w = G.p2;
+    else if(G.p2.hp <= 0) w = G.p1;
+    else w = G.p1.hp > G.p2.hp ? G.p1 : (G.p2.hp > G.p1.hp ? G.p2 : null);
+
+    if(w){ w.wins++; G.msg = w.d.name + " 승"; }
+    else G.msg = "무승부";
+    G.msgT = 130;
+
+    if(G.p1.wins >= 2 || G.p2.wins >= 2){
+      G.winner = G.p1.wins >= 2 ? G.p1 : G.p2;
+      setTimeout(function(){ G.scene = "result"; }, 1400);
+    } else {
+      G.round++;
+      setTimeout(resetRound, 1400);
+    }
+  }
+  if(G.shake > 0) G.shake--;
+}
+
+function render(){
+  ctx.setTransform(1,0,0,1,0,0);
+  if(G.scene === "title"){ drawTitle(); return; }
+  if(G.scene === "select"){ drawSelect(); return; }
+
+  if(G.shake > 0){
+    ctx.translate((Math.random()-0.5)*G.shake, (Math.random()-0.5)*G.shake);
+  }
+  drawBg();
+  var order = G.p1.x < G.p2.x ? [G.p1,G.p2] : [G.p2,G.p1];
+  drawFighter(order[0]); drawFighter(order[1]);
+  drawProjectiles();
+  drawFx();
+  ctx.setTransform(1,0,0,1,0,0);
+  drawHud();
+
+  if(G.scene === "result"){
+    ctx.fillStyle = "rgba(6,8,16,.82)"; ctx.fillRect(0,0,W,H);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#FFD35C"; ctx.font = "800 52px system-ui";
+    ctx.fillText(G.winner.d.name + " 우승", W/2, 240);
+    ctx.fillStyle = "#8FA0C8"; ctx.font = "600 20px system-ui";
+    ctx.fillText(G.winner.d.city + " · " + G.winner.d.tag, W/2, 282);
+    ctx.fillStyle = (G.tick%60<40) ? "#FFFFFF" : "#7A85A8";
+    ctx.font = "700 20px system-ui";
+    ctx.fillText("SPACE  캐릭터 선택으로", W/2, 380);
+  }
+}
+
+var acc = 0, last = 0;
+function loop(ts){
+  if(!last) last = ts;
+  acc += Math.min(100, ts - last); last = ts;
+  while(acc >= 16.667){ update(); acc -= 16.667; }
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+document.getElementById("hint").innerHTML =
+  '<b>1P</b> <kbd>A</kbd><kbd>D</kbd> 이동 · <kbd>W</kbd> 점프 · <kbd>S</kbd> 가드 · ' +
+  '<kbd>J</kbd> 약공격 · <kbd>K</kbd> 강공격 · <kbd>L</kbd> 필살기 &nbsp;&nbsp; ' +
+  '<b>2P</b> <kbd>←</kbd><kbd>→</kbd> 이동 · <kbd>↑</kbd> 점프 · <kbd>↓</kbd> 가드 · ' +
+  '<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> &nbsp;&nbsp; 선택 화면에서 <kbd>T</kbd> 로 1인/2인 전환';
+})();
+</script>
+</body>
+</html>
