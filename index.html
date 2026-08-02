@@ -436,9 +436,9 @@ window.addEventListener("blur", function(){ keys = {}; });   // 창을 벗어나
 
 var PAD = {
   left:"ArrowLeft", right:"ArrowRight", up:"ArrowUp", guard:"ArrowDown",
-  light:"KeyZ",
-  heavy:["KeyX", "KeyW"],     // X 와 W 를 모두 강공격으로 받는다
-  sp:"KeyC"
+  punch:"KeyZ",               // 주먹치기
+  kick:["KeyX", "KeyW"],      // 발차기 — X 와 W 를 모두 받는다
+  sp:"KeyC"                   // 필살기
 };
 function held(k){
   if(typeof k === "string") return !!keys[k];
@@ -634,8 +634,10 @@ function Fighter(def, x, faceRight, human){
 }
 
 var ATTACKS = {
-  light: {startup:5, active:5, recover:9, dmg:6, range:62, h:-34, push:2.2, gauge:7},
-  heavy: {startup:11, active:6, recover:18, dmg:13, range:74, h:-24, push:5, gauge:11},
+  // 주먹치기 — 빠르고 가볍다. 팔이 위쪽으로 뻗는다.
+  punch: {startup:5, active:5, recover:9,  dmg:7,  range:62, h:-38, push:2.2, gauge:7},
+  // 발차기 — 느리지만 세다. 다리가 아래쪽을 훑는다.
+  kick:  {startup:10, active:7, recover:17, dmg:14, range:80, h:-18, push:5,   gauge:11},
 };
 
 Fighter.prototype.busy = function(){
@@ -646,12 +648,11 @@ Fighter.prototype.startAttack = function(kind){
   if(this.busy()) return;
   this.state = "attack"; this.t = 0;
   this.atk = {kind:kind, spec:ATTACKS[kind], done:false};
-  sfxSwing(kind === "heavy");
+  sfxSwing(kind === "kick");
 };
 
 Fighter.prototype.startSpecial = function(){
-  if(this.busy() || this.gauge < this.d.spCost) return;
-  this.gauge -= this.d.spCost;
+  if(this.busy()) return;          // 게이지 없이 언제든 쓸 수 있다
   sfxSpecial();
   this.state = "attack"; this.t = 0;
   this.atk = {kind:"sp", spec:{startup:14, active:4, recover:20, dmg:0,
@@ -723,23 +724,23 @@ function driveAI(me, foe){
     var r = Math.random();
     if(dist > 260) me.ai.want = r < 0.75 ? "approach" : "sp";
     else if(dist > 110) me.ai.want = r < 0.5 ? "approach" : (r < 0.75 ? "sp" : "back");
-    else me.ai.want = r < 0.42 ? "light" : (r < 0.62 ? "heavy" :
-                     (r < 0.82 ? "guard" : "back"));
+    else me.ai.want = r < 0.42 ? "punch" : (r < 0.64 ? "kick" :
+                     (r < 0.84 ? "guard" : "back"));
   }
   var w = me.ai.want, dir = foe.x > me.x ? 1 : -1;
-  var out = {left:false,right:false,up:false,guard:false,light:false,heavy:false,sp:false};
+  var out = {left:false,right:false,up:false,guard:false,punch:false,kick:false,sp:false};
   if(w === "approach"){ if(dir>0) out.right = true; else out.left = true; }
   else if(w === "back"){ if(dir>0) out.left = true; else out.right = true; }
   else if(w === "guard") out.guard = true;
-  else if(w === "light") out.light = true;
-  else if(w === "heavy") out.heavy = true;
+  else if(w === "punch") out.punch = true;
+  else if(w === "kick") out.kick = true;
   else if(w === "sp") out.sp = true;
   // 날아오는 것이 있으면 방어 확률을 높인다
   for(var i=0;i<G.projs.length;i++){
     var p = G.projs[i];
     if(p.owner !== me && Math.abs(p.x-me.x) < 190 &&
        ((p.vx>0 && p.x<me.x) || (p.vx<0 && p.x>me.x))){
-      if(Math.random() < 0.55){ out.guard = true; out.light = out.heavy = false; }
+      if(Math.random() < 0.55){ out.guard = true; out.punch = out.kick = false; }
     }
   }
   return out;
@@ -748,8 +749,8 @@ function driveAI(me, foe){
 function readInput(f, foe){
   if(f.human){
     return {left:held(PAD.left), right:held(PAD.right), up:held(PAD.up),
-            guard:held(PAD.guard), light:held(PAD.light),
-            heavy:held(PAD.heavy), sp:held(PAD.sp)};
+            guard:held(PAD.guard), punch:held(PAD.punch),
+            kick:held(PAD.kick), sp:held(PAD.sp)};
   }
   return driveAI(f, foe);
 }
@@ -776,8 +777,8 @@ function stepFighter(f, foe){
 
   if(f.state !== "attack" && f.state !== "hit"){
     if(inp.sp) f.startSpecial();
-    else if(inp.heavy) f.startAttack("heavy");
-    else if(inp.light) f.startAttack("light");
+    else if(inp.kick) f.startAttack("kick");
+    else if(inp.punch) f.startAttack("punch");
   }
 
   if(f.state !== "attack" && f.state !== "hit"){
@@ -839,8 +840,9 @@ function attackBox(f){
   var s = f.atk.spec;
   if(f.t < s.startup || f.t > s.startup + s.active) return null;
   var reach = (f.d.reach || 1);
-  return {x:f.x + f.face*(26 + s.range*reach*0.5), y:f.y + s.h,
-          w:s.range*reach, h:44, dmg:s.dmg*f.d.power, push:s.push, gauge:s.gauge};
+  var lead = (f.atk.kind === "kick") ? 34 : 26;   // 발차기가 조금 더 앞선다
+  return {x:f.x + f.face*(lead + s.range*reach*0.5), y:f.y + s.h,
+          w:s.range*reach, h:46, dmg:s.dmg*f.d.power, push:s.push, gauge:s.gauge};
 }
 
 function bodyBox(f){ return {x:f.x, y:f.y-46, w:56, h:92}; }
@@ -920,7 +922,7 @@ function drawFighter(f){
   g.translate(f.x, f.y);
   g.scale(f.face, 1);
 
-  var t = G.tick, bob = 0, lean = 0, armF = 0, armB = 0, legS = 0;
+  var t = G.tick, bob = 0, lean = 0, armF = 0, armB = 0, legS = 0, kickF = 0;
   if(f.state === "idle"){ bob = Math.sin(t*0.08)*2; }
   else if(f.state === "walk"){ bob = Math.abs(Math.sin(t*0.22))*3; legS = Math.sin(t*0.22)*10; }
   else if(f.state === "jump"){ legS = 6; lean = -0.12; }
@@ -928,12 +930,21 @@ function drawFighter(f){
   else if(f.state === "hit"){ lean = 0.22; bob = 2; }
   else if(f.state === "ko"){ lean = 1.35; }
   else if(f.state === "attack"){
-    var s = f.atk.spec, p = f.t / (s.startup+s.active+s.recover);
-    if(f.t < s.startup) armF = -12*(f.t/s.startup);
-    else if(f.t < s.startup+s.active) armF = 34;
-    else armF = 34*(1-(f.t-s.startup-s.active)/s.recover);
-    lean = 0.06;
-    if(f.atk.kind === "sp") armF = Math.max(armF, 26);
+    var s = f.atk.spec;
+    // 발동 → 유효 → 후딜 순으로 뻗었다가 돌아온다
+    var ext;
+    if(f.t < s.startup) ext = -0.35*(f.t/s.startup);
+    else if(f.t < s.startup+s.active) ext = 1;
+    else ext = 1-(f.t-s.startup-s.active)/s.recover;
+
+    if(f.atk.kind === "kick"){
+      kickF = ext;                 // 다리가 앞으로
+      lean = -0.10; armB = 10;     // 상체는 뒤로 젖힌다
+    } else {
+      armF = 34*ext;               // 팔이 앞으로
+      lean = 0.06;
+      if(f.atk.kind === "sp") armF = Math.max(armF, 26);
+    }
   }
 
   g.rotate(lean*0.35);
@@ -949,8 +960,17 @@ function drawFighter(f){
 
   // 다리
   g.strokeStyle = d.c3; g.lineWidth = 11; g.lineCap = "round";
+  // 뒷다리 (버티는 다리)
   g.beginPath(); g.moveTo(-6,-16); g.lineTo(-8-legS*0.6, -2 + (f.y<GROUND?-6:0)); g.stroke();
-  g.beginPath(); g.moveTo(7,-16); g.lineTo(9+legS*0.6, -2 + (f.y<GROUND?-4:0)); g.stroke();
+  // 앞다리 — 발차기 중이면 앞으로 뻗는다
+  if(kickF > 0.02){
+    var kx = 12 + 54*kickF, ky = -20 - 10*kickF;
+    g.beginPath(); g.moveTo(4,-18); g.lineTo(kx, ky); g.stroke();
+    g.fillStyle = d.ac;                       // 발끝
+    g.beginPath(); g.arc(kx+3, ky, 8.5, 0, 7); g.fill();
+  } else {
+    g.beginPath(); g.moveTo(7,-16); g.lineTo(9+legS*0.6, -2 + (f.y<GROUND?-4:0)); g.stroke();
+  }
 
   // 몸통
   g.fillStyle = flash ? "#FFFFFF" : d.c1;
@@ -1080,15 +1100,13 @@ function drawGauge(x, y, w, f, right){
   else { roundRectPath(ctx, x, y, w*hp, 28, 5); }
   ctx.fill();
 
-  // 필살 게이지
-  var gy = y + 32;
-  ctx.fillStyle = "#1A1F33"; roundRectPath(ctx, x, gy, w*0.55, 8, 4); ctx.fill();
-  ctx.fillStyle = f.gauge >= f.d.spCost ? "#7FD8FF" : "#46527A";
-  roundRectPath(ctx, x, gy, w*0.55*(f.gauge/100), 8, 4); ctx.fill();
-
-  ctx.fillStyle = "#DDE3F5"; ctx.font = "600 15px system-ui";
+  // 필살기는 무제한이라 게이지 대신 상시 표시
+  var gy = y + 36;
   ctx.textAlign = right ? "right" : "left";
-  ctx.fillText(f.d.name + "  ·  " + f.d.city, right ? x+w : x, gy+28);
+  ctx.fillStyle = "#DDE3F5"; ctx.font = "600 15px system-ui";
+  ctx.fillText(f.d.name + "  ·  " + f.d.city, right ? x+w : x, gy+16);
+  ctx.fillStyle = "#7FD8FF"; ctx.font = "600 12px system-ui";
+  ctx.fillText("필살기 " + f.d.sp + "  ∞", right ? x+w : x, gy+34);
 }
 
 /* ============================================================
@@ -1292,8 +1310,8 @@ requestAnimationFrame(loop);
 
 document.getElementById("hint").innerHTML =
   '<b>이동</b> <kbd>←</kbd><kbd>→</kbd> &nbsp; <b>점프</b> <kbd>↑</kbd> &nbsp; ' +
-  '<b>가드</b> <kbd>↓</kbd> &nbsp;&nbsp; <b>약공격</b> <kbd>Z</kbd> &nbsp; ' +
-  '<b>강공격</b> <kbd>X</kbd><kbd>W</kbd> &nbsp; <b>필살기</b> <kbd>C</kbd>' +
+  '<b>가드</b> <kbd>↓</kbd> &nbsp;&nbsp; <b>주먹치기</b> <kbd>Z</kbd> &nbsp; ' +
+  '<b>발차기</b> <kbd>X</kbd><kbd>W</kbd> &nbsp; <b>필살기</b> <kbd>C</kbd> (무제한)' +
   '<br><b>음소거</b> <kbd>M</kbd> &nbsp; 한글 입력 상태에서도 그대로 작동합니다. 상대는 컴퓨터가 맡습니다.';
 })();
 </script>
