@@ -193,31 +193,237 @@ var ROSTER = [
       g.beginPath(); g.arc(-3,-3,3,0,7); g.fill();
       g.beginPath(); g.arc(3,3,2.5,0,7); g.fill();
     }
+  },
+  {
+    id:"dakgalbi", name:"닭갈비", city:"춘천", tag:"불판 위의 맹공",
+    hp:94, speed:3.9, power:0.9, jump:15,
+    c1:"#D8523A", c2:"#A83322", c3:"#5E1A11", ac:"#F2C14E",
+    sp:"불판 화염", spCost:45, projSpeed:7.5, projDmg:12, projR:15,
+    head:function(g,t){
+      g.fillStyle="#F0E4D2"; g.beginPath();
+      g.ellipse(0,-14,18,16,0,0,7); g.fill();
+      g.fillStyle=this.c1; g.beginPath();              // 볏
+      for(var i=-1;i<2;i++){
+        g.moveTo(i*7-4,-28); g.quadraticCurveTo(i*7,-40,i*7+4,-28);
+      }
+      g.fill();
+      g.fillStyle="#241812"; g.beginPath(); g.arc(6,-17,3,0,7); g.fill();
+      g.fillStyle=this.ac; g.beginPath();              // 부리
+      g.moveTo(15,-14); g.lineTo(27,-11); g.lineTo(15,-8); g.fill();
+      g.fillStyle=this.c2; g.beginPath();              // 턱볏
+      g.ellipse(13,-5,4,6,0,0,7); g.fill();
+    },
+    proj:function(g,t){
+      for(var i=0;i<3;i++){
+        g.globalAlpha=0.85-i*0.22;
+        g.fillStyle=i===0?"#FFD24A":(i===1?"#FF8A34":"#E5442A");
+        g.beginPath();
+        g.moveTo(12-i*4,0);
+        g.quadraticCurveTo(-2,-9-i*2+Math.sin(t*0.4)*2,-12+i*3,0);
+        g.quadraticCurveTo(-2,9+i*2,12-i*4,0); g.fill();
+      }
+      g.globalAlpha=1;
+    }
+  },
+  {
+    id:"bibimbap", name:"비빔밥", city:"전주", tag:"뚝배기의 뚝심",
+    hp:132, speed:2.3, power:1.2, jump:12,
+    c1:"#4A3A30", c2:"#33261F", c3:"#1D1512", ac:"#E8C23C",
+    sp:"고추장 발사", spCost:50, projSpeed:7, projDmg:15, projR:13,
+    head:function(g,t){
+      g.fillStyle=this.c1; g.beginPath();              // 돌솥
+      g.moveTo(-24,-10); g.quadraticCurveTo(-20,10,0,10);
+      g.quadraticCurveTo(20,10,24,-10); g.closePath(); g.fill();
+      g.fillStyle=this.c2; g.beginPath();
+      g.ellipse(0,-11,25,7,0,0,7); g.fill();
+      g.fillStyle="#F0EAD8"; g.beginPath();            // 밥
+      g.ellipse(0,-14,20,6,0,0,7); g.fill();
+      g.fillStyle=this.ac; g.beginPath();              // 계란 노른자
+      g.arc(0,-18,7,0,7); g.fill();
+      var veg=[["#5E8B3A",-13,-17],["#C8452E",12,-17],["#8A6B3A",-6,-20],["#3E6B4A",7,-20]];
+      for(var i=0;i<veg.length;i++){
+        g.fillStyle=veg[i][0]; g.beginPath();
+        g.ellipse(veg[i][1],veg[i][2],4,2.5,0.4,0,7); g.fill();
+      }
+      g.strokeStyle="#D9CDB4"; g.lineWidth=1.5; g.globalAlpha=.5;   // 김
+      for(var j=-1;j<2;j++){
+        g.beginPath(); g.moveTo(j*9,-26);
+        g.quadraticCurveTo(j*9+4,-33+Math.sin(t*0.15+j)*2,j*9,-40); g.stroke();
+      }
+      g.globalAlpha=1;
+    },
+    proj:function(g,t){
+      g.fillStyle="#C8331F"; g.beginPath(); g.arc(0,0,11,0,7); g.fill();
+      g.fillStyle="#8E1F12";
+      g.beginPath(); g.arc(-3,2,4,0,7); g.fill();
+    }
+  },
+  {
+    id:"coffee", name:"커피", city:"강릉", tag:"각성의 한 잔",
+    hp:92, speed:3.6, power:0.92, jump:15,
+    c1:"#F2EDE4", c2:"#CFC5B4", c3:"#4A3B2E", ac:"#6B4322",
+    sp:"에스프레소 샷", spCost:38, projSpeed:10.5, projDmg:11, projR:10,
+    head:function(g,t){
+      g.fillStyle=this.c1; g.beginPath();              // 잔
+      g.moveTo(-17,-26); g.lineTo(-13,2); g.lineTo(13,2); g.lineTo(17,-26);
+      g.closePath(); g.fill();
+      g.strokeStyle=this.c1; g.lineWidth=4;            // 손잡이
+      g.beginPath(); g.arc(20,-14,8,-1.2,1.2); g.stroke();
+      g.fillStyle=this.c3; g.beginPath();              // 커피 표면
+      g.ellipse(0,-25,17,5,0,0,7); g.fill();
+      g.fillStyle=this.c2; g.beginPath();              // 크레마 하트
+      g.ellipse(0,-25,8,3,0,0,7); g.fill();
+      g.fillStyle="#2A2018";
+      g.beginPath(); g.arc(-6,-12,2.6,0,7); g.fill();
+      g.beginPath(); g.arc(6,-12,2.6,0,7); g.fill();
+      g.strokeStyle="#D9CDB4"; g.lineWidth=1.6; g.globalAlpha=.55;
+      for(var j=-1;j<2;j++){
+        g.beginPath(); g.moveTo(j*8,-32);
+        g.quadraticCurveTo(j*8+4,-40+Math.sin(t*0.18+j)*2,j*8,-48); g.stroke();
+      }
+      g.globalAlpha=1;
+    },
+    proj:function(g,t){
+      g.fillStyle="#3A2A1C"; g.beginPath();
+      g.ellipse(0,0,11,7,0,0,7); g.fill();
+      g.fillStyle="#C8A87A"; g.globalAlpha=.7;
+      g.beginPath(); g.ellipse(-6,-2,4,2.5,0,0,7); g.fill();
+      g.globalAlpha=1;
+    }
+  },
+  {
+    id:"whale", name:"고래", city:"울산", tag:"바다의 무게",
+    hp:150, speed:1.9, power:1.35, jump:10.5,
+    c1:"#3F5C86", c2:"#2B3F5E", c3:"#1A2739", ac:"#9FD4E8",
+    sp:"물기둥", spCost:58, projSpeed:0, projDmg:24, projR:0,
+    head:function(g,t){
+      g.fillStyle=this.c1; g.beginPath();              // 몸
+      g.ellipse(0,-14,26,17,0,0,7); g.fill();
+      g.fillStyle="#E8EEF4"; g.beginPath();            // 배
+      g.ellipse(2,-8,20,9,0,0,7); g.fill();
+      g.fillStyle=this.c2; g.beginPath();              // 꼬리
+      g.moveTo(-22,-16); g.lineTo(-38,-26); g.lineTo(-34,-14);
+      g.lineTo(-38,-4); g.closePath(); g.fill();
+      g.fillStyle="#141C28"; g.beginPath(); g.arc(12,-18,3,0,7); g.fill();
+      g.strokeStyle=this.c3; g.lineWidth=2;            // 입
+      g.beginPath(); g.arc(14,-10,9,-0.2,0.9); g.stroke();
+      g.fillStyle=this.ac; g.globalAlpha=.75;          // 물 뿜기
+      for(var i=0;i<3;i++){
+        g.beginPath();
+        g.ellipse(-4+i*3,-34-i*7+Math.sin(t*0.2)*2,4-i*0.7,6-i,0,0,7); g.fill();
+      }
+      g.globalAlpha=1;
+    },
+    proj:function(g,t){
+      g.fillStyle="#8FD0E8"; g.globalAlpha=.8;
+      g.beginPath(); g.ellipse(0,-10,18,34+Math.sin(t*0.35)*6,0,0,7); g.fill();
+      g.globalAlpha=1;
+    }
+  },
+  {
+    id:"crab", name:"대게", city:"속초", tag:"집게의 사거리",
+    hp:112, speed:2.7, power:1.05, jump:12.5,
+    c1:"#D0603A", c2:"#A84124", c3:"#6E2A18", ac:"#F0D0B0",
+    reach:1.3,
+    sp:"집게 강타", spCost:48, projSpeed:8, projDmg:14, projR:12,
+    head:function(g,t){
+      g.fillStyle=this.c1; g.beginPath();              // 등딱지
+      g.ellipse(0,-14,25,16,0,0,7); g.fill();
+      g.fillStyle=this.c3;
+      for(var i=-2;i<3;i++){                            // 다리
+        g.save(); g.translate(i*9,-2); g.rotate(i*0.18);
+        g.fillRect(-2,-1,4,12); g.restore();
+      }
+      g.fillStyle=this.c1;                              // 집게
+      g.save(); g.translate(24,-18); g.rotate(Math.sin(t*0.12)*0.18);
+      g.beginPath(); g.ellipse(6,0,9,5,0,0,7); g.fill();
+      g.fillStyle=this.c3;
+      g.beginPath(); g.moveTo(4,-2); g.lineTo(18,-5); g.lineTo(6,0); g.fill();
+      g.restore();
+      g.fillStyle="#1A1008";
+      g.beginPath(); g.arc(-7,-22,3,0,7); g.fill();
+      g.beginPath(); g.arc(7,-22,3,0,7); g.fill();
+      g.fillStyle=this.ac; g.beginPath();
+      g.ellipse(0,-9,10,4,0,0,7); g.fill();
+    },
+    proj:function(g,t){
+      g.fillStyle="#D0603A"; g.beginPath();
+      g.ellipse(0,0,12,7,Math.sin(t*0.3)*0.3,0,7); g.fill();
+      g.fillStyle="#6E2A18";
+      g.beginPath(); g.moveTo(6,-3); g.lineTo(16,-6); g.lineTo(7,0); g.fill();
+    }
+  },
+  {
+    id:"camellia", name:"동백꽃", city:"여수", tag:"겨울에 피는 칼날",
+    hp:100, speed:3.4, power:1.0, jump:14.5,
+    c1:"#C42B3A", c2:"#8E1B27", c3:"#2E5B33", ac:"#F5D64E",
+    sp:"꽃잎 폭풍", spCost:44, projSpeed:8.5, projDmg:12, projR:14,
+    head:function(g,t){
+      g.fillStyle=this.c3; g.beginPath();              // 잎
+      g.ellipse(-22,-6,11,5,-0.5,0,7); g.fill();
+      g.beginPath(); g.ellipse(22,-6,11,5,0.5,0,7); g.fill();
+      g.fillStyle=this.c1;                              // 꽃잎 5장
+      for(var i=0;i<5;i++){
+        var a=i*1.2566 - Math.PI/2 + Math.sin(t*0.04)*0.05;
+        g.save(); g.translate(Math.cos(a)*11, -14+Math.sin(a)*11); g.rotate(a);
+        g.beginPath(); g.ellipse(0,0,12,9,0,0,7); g.fill(); g.restore();
+      }
+      g.fillStyle=this.c2; g.beginPath();
+      g.arc(0,-14,9,0,7); g.fill();
+      g.fillStyle=this.ac;                              // 수술
+      for(var j=0;j<7;j++){
+        var b=j*0.897;
+        g.beginPath();
+        g.arc(Math.cos(b)*6, -14+Math.sin(b)*6, 1.9, 0, 7); g.fill();
+      }
+      g.fillStyle="#2A0A0E";
+      g.beginPath(); g.arc(-4,-15,2.2,0,7); g.fill();
+      g.beginPath(); g.arc(4,-15,2.2,0,7); g.fill();
+    },
+    proj:function(g,t){
+      for(var i=0;i<3;i++){
+        g.save();
+        g.translate(-i*8, Math.sin(t*0.25+i*2)*7);
+        g.rotate(t*0.12+i);
+        g.fillStyle=i===1?"#E8556A":"#C42B3A";
+        g.beginPath(); g.ellipse(0,0,8,5,0,0,7); g.fill();
+        g.restore();
+      }
+    }
   }
 ];
 
 /* ============================================================
    입력
    ============================================================ */
+/* 입력은 e.key 가 아니라 e.code 를 본다.
+   e.key 는 한글 입력 상태에서 'ㅋ' 같은 글자나 'Process' 로 바뀌어 버리지만,
+   e.code 는 자판의 물리적 위치라서 한/영 상태와 무관하게 항상 같다. */
 var keys = {};
+var BLOCK = {ArrowLeft:1, ArrowRight:1, ArrowUp:1, ArrowDown:1, Space:1};
 window.addEventListener("keydown", function(e){
-  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].indexOf(e.key)>=0) e.preventDefault();
-  keys[e.key.toLowerCase()] = true;
-  if(e.key === " ") keys["space"] = true;
+  if(BLOCK[e.code]) e.preventDefault();
+  keys[e.code] = true;
 });
-window.addEventListener("keyup", function(e){
-  keys[e.key.toLowerCase()] = false;
-  if(e.key === " ") keys["space"] = false;
-});
+window.addEventListener("keyup", function(e){ keys[e.code] = false; });
+window.addEventListener("blur", function(){ keys = {}; });   // 창을 벗어나면 키 해제
 
-var P1 = {left:"a", right:"d", up:"w", guard:"s", light:"j", heavy:"k", sp:"l"};
-var P2 = {left:"arrowleft", right:"arrowright", up:"arrowup", guard:"arrowdown",
-          light:"1", heavy:"2", sp:"3"};
+var PAD = {
+  left:"ArrowLeft", right:"ArrowRight", up:"ArrowUp", guard:"ArrowDown",
+  light:"KeyZ",
+  heavy:["KeyX", "KeyW"],     // X 와 W 를 모두 강공격으로 받는다
+  sp:"KeyC"
+};
+function held(k){
+  if(typeof k === "string") return !!keys[k];
+  for(var i=0;i<k.length;i++) if(keys[k[i]]) return true;
+  return false;
+}
 
 /* ============================================================
    파이터
    ============================================================ */
-function Fighter(def, x, faceRight, human, pad){
+function Fighter(def, x, faceRight, human){
   this.d = def;
   this.x = x; this.y = GROUND; this.vx = 0; this.vy = 0;
   this.face = faceRight ? 1 : -1;
@@ -227,7 +433,7 @@ function Fighter(def, x, faceRight, human, pad){
   this.t = 0;               // 상태 타이머
   this.atk = null;          // 진행 중인 공격
   this.hitLock = 0;         // 같은 공격에 여러 번 맞지 않도록
-  this.human = human; this.pad = pad;
+  this.human = human;
   this.ai = {think:0, want:"idle"};
   this.flash = 0;
   this.wins = 0;
@@ -277,7 +483,7 @@ Fighter.prototype.hurt = function(dmg, dir, guarding){
    ============================================================ */
 var G = {
   scene:"title",     // title select fight result
-  twoPlayer:false, winner:null,
+  winner:null,
   sel:0, selP2:2,
   p1:null, p2:null,
   projs:[], fx:[],
@@ -286,11 +492,17 @@ var G = {
 };
 
 function beginFight(){
-  G.p1 = new Fighter(ROSTER[G.sel], 300, true, true, P1);
-  G.p2 = new Fighter(ROSTER[G.selP2], 660, false, G.twoPlayer, P2);
+  // 1인용 — 상대는 자기 자신을 뺀 나머지에서 무작위로 고른다
+  var pool = [];
+  for(var i=0;i<ROSTER.length;i++) if(i !== G.sel) pool.push(i);
+  G.selP2 = pool[Math.floor(Math.random()*pool.length)];
+
+  G.p1 = new Fighter(ROSTER[G.sel], 300, true, true);
+  G.p2 = new Fighter(ROSTER[G.selP2], 660, false, false);
   G.projs = []; G.fx = [];
   G.timer = 99*60; G.round = 1;
-  G.scene = "fight"; G.msg = "ROUND 1"; G.msgT = 90;
+  G.scene = "fight";
+  G.msg = "VS " + ROSTER[G.selP2].name; G.msgT = 110;
 }
 function resetRound(){
   G.p1.x = 300; G.p1.y = GROUND; G.p1.hp = G.p1.hpMax; G.p1.state="idle";
@@ -336,10 +548,9 @@ function driveAI(me, foe){
 
 function readInput(f, foe){
   if(f.human){
-    var p = f.pad;
-    return {left:!!keys[p.left], right:!!keys[p.right], up:!!keys[p.up],
-            guard:!!keys[p.guard], light:!!keys[p.light],
-            heavy:!!keys[p.heavy], sp:!!keys[p.sp]};
+    return {left:held(PAD.left), right:held(PAD.right), up:held(PAD.up),
+            guard:held(PAD.guard), light:held(PAD.light),
+            heavy:held(PAD.heavy), sp:held(PAD.sp)};
   }
   return driveAI(f, foe);
 }
@@ -689,8 +900,8 @@ function drawTitle(){
   for(var i=0;i<ROSTER.length;i++){
     var d = ROSTER[i];
     ctx.save();
-    ctx.translate(140 + i*137, 400 + Math.sin(G.tick*0.05 + i)*4);
-    ctx.scale(0.9, 0.9);
+    ctx.translate(66 + i*75, 400 + Math.sin(G.tick*0.05 + i)*4);
+    ctx.scale(0.62, 0.62);
     ctx.fillStyle = "rgba(0,0,0,.3)";
     ctx.beginPath(); ctx.ellipse(0,4,26,7,0,0,7); ctx.fill();
     ctx.fillStyle = d.c1; roundRectPath(ctx,-18,-46,36,36,12); ctx.fill();
@@ -700,49 +911,54 @@ function drawTitle(){
 
   ctx.fillStyle = (G.tick % 60 < 40) ? "#FFD35C" : "#8A7A3C";
   ctx.font = "700 22px system-ui";
-  ctx.fillText("SPACE  를 눌러 시작", W/2, 500);
+  ctx.fillText("Z  또는  SPACE  를 눌러 시작", W/2, 500);
 }
+
+var COLS = 4;
 
 function drawSelect(){
   drawBg();
   ctx.textAlign = "center";
-  ctx.fillStyle = "#FFFFFF"; ctx.font = "800 34px system-ui";
-  ctx.fillText("캐릭터 선택", W/2, 62);
-  ctx.fillStyle = "#8FA0C8"; ctx.font = "500 15px system-ui";
-  ctx.fillText(G.twoPlayer ? "1P: A/D 로 이동, J 로 결정   ·   2P: ←/→ 이동, 1 로 결정"
-                           : "A/D 또는 ←/→ 로 고르고 SPACE 로 시작", W/2, 90);
+  ctx.fillStyle = "#FFFFFF"; ctx.font = "800 30px system-ui";
+  ctx.fillText("캐릭터 선택", W/2, 50);
+  ctx.fillStyle = "#8FA0C8"; ctx.font = "500 14px system-ui";
+  ctx.fillText("← ↑ ↓ → 로 고르고  Z  또는  SPACE  로 시작", W/2, 74);
 
-  var cols = 3, cw = 260, ch = 150, ox = (W - cols*cw)/2, oy = 120;
+  var cw = 228, ch = 112, ox = (W - COLS*cw)/2, oy = 92;
   for(var i=0;i<ROSTER.length;i++){
     var d = ROSTER[i];
-    var cx2 = ox + (i%cols)*cw, cy2 = oy + Math.floor(i/cols)*ch;
-    var on1 = (i === G.sel), on2 = (i === G.selP2);
-    ctx.fillStyle = "#171D30";
-    roundRectPath(ctx, cx2+8, cy2+8, cw-16, ch-16, 12); ctx.fill();
-    ctx.lineWidth = on1||on2 ? 3 : 1.5;
-    ctx.strokeStyle = on1 ? "#FFD35C" : (on2 ? "#7FD8FF" : "#333B58");
+    var cx2 = ox + (i%COLS)*cw, cy2 = oy + Math.floor(i/COLS)*ch;
+    var on = (i === G.sel);
+
+    ctx.fillStyle = on ? "#242B45" : "#171D30";
+    roundRectPath(ctx, cx2+6, cy2+6, cw-12, ch-12, 11); ctx.fill();
+    ctx.lineWidth = on ? 3 : 1.5;
+    ctx.strokeStyle = on ? "#FFD35C" : "#333B58";
     ctx.stroke();
 
     ctx.save();
-    ctx.translate(cx2+62, cy2+ch-46);
-    ctx.fillStyle = d.c1; roundRectPath(ctx,-17,-42,34,34,11); ctx.fill();
-    ctx.save(); ctx.translate(0,-42); d.head.call(d, ctx, G.tick); ctx.restore();
+    ctx.translate(cx2+46, cy2+ch-30);
+    var s = on ? 0.86 + Math.sin(G.tick*0.1)*0.03 : 0.78;
+    ctx.scale(s, s);
+    ctx.fillStyle = d.c1; roundRectPath(ctx,-16,-40,32,32,10); ctx.fill();
+    ctx.save(); ctx.translate(0,-40); d.head.call(d, ctx, G.tick); ctx.restore();
     ctx.restore();
 
     ctx.textAlign = "left";
-    ctx.fillStyle = "#FFFFFF"; ctx.font = "700 19px system-ui";
-    ctx.fillText(d.name, cx2+108, cy2+52);
-    ctx.fillStyle = "#8FA0C8"; ctx.font = "500 13px system-ui";
-    ctx.fillText(d.city + " · " + d.tag, cx2+108, cy2+72);
-    ctx.fillStyle = "#6E7B9E"; ctx.font = "500 12px system-ui";
-    ctx.fillText("체력 " + d.hp + "  속도 " + d.speed.toFixed(1), cx2+108, cy2+94);
-    ctx.fillStyle = "#FFD35C"; ctx.font = "600 12px system-ui";
-    ctx.fillText("필살기 " + d.sp, cx2+108, cy2+114);
+    ctx.fillStyle = on ? "#FFFFFF" : "#C8D0E4"; ctx.font = "700 17px system-ui";
+    ctx.fillText(d.name, cx2+80, cy2+38);
+    ctx.fillStyle = "#8FA0C8"; ctx.font = "500 12px system-ui";
+    ctx.fillText(d.city, cx2+80, cy2+56);
+    ctx.fillStyle = "#6E7B9E"; ctx.font = "500 11.5px system-ui";
+    ctx.fillText("체력 " + d.hp + " · 속도 " + d.speed.toFixed(1), cx2+80, cy2+74);
+    ctx.fillStyle = on ? "#FFD35C" : "#7E7148"; ctx.font = "600 11.5px system-ui";
+    ctx.fillText(d.sp, cx2+80, cy2+92);
     ctx.textAlign = "center";
   }
 
-  ctx.fillStyle = "#8FA0C8"; ctx.font = "500 14px system-ui";
-  ctx.fillText("T 를 누르면 " + (G.twoPlayer ? "1인용(CPU)" : "2인 대전") + " 으로 전환", W/2, H-22);
+  var pick = ROSTER[G.sel];
+  ctx.fillStyle = "#9FB0D8"; ctx.font = "500 13.5px system-ui";
+  ctx.fillText(pick.city + " · " + pick.tag + "   —   상대는 무작위로 정해집니다", W/2, H-18);
 }
 
 /* ============================================================
@@ -756,27 +972,24 @@ function pressed(k){
   return now && !was;
 }
 
+function confirmPressed(){
+  // 결정 키는 여러 개를 받는다 (Z · SPACE · ENTER)
+  var a = pressed("KeyZ"), b = pressed("Space"), c = pressed("Enter");
+  return a || b || c;
+}
+
 function sceneInput(){
   if(G.scene === "title"){
-    if(pressed("space")){ G.scene = "select"; }
+    if(confirmPressed()) G.scene = "select";
   } else if(G.scene === "select"){
-    if(pressed("t")) G.twoPlayer = !G.twoPlayer;
-    if(pressed("a")) G.sel = (G.sel + ROSTER.length - 1) % ROSTER.length;
-    if(pressed("d")) G.sel = (G.sel + 1) % ROSTER.length;
-    if(!G.twoPlayer){
-      if(pressed("arrowleft")) G.sel = (G.sel + ROSTER.length - 1) % ROSTER.length;
-      if(pressed("arrowright")) G.sel = (G.sel + 1) % ROSTER.length;
-      if(pressed("space") || pressed("j")){
-        G.selP2 = Math.floor(Math.random()*ROSTER.length);
-        beginFight();
-      }
-    } else {
-      if(pressed("arrowleft")) G.selP2 = (G.selP2 + ROSTER.length - 1) % ROSTER.length;
-      if(pressed("arrowright")) G.selP2 = (G.selP2 + 1) % ROSTER.length;
-      if(pressed("j") || pressed("1") || pressed("space")) beginFight();
-    }
+    var n = ROSTER.length;
+    if(pressed("ArrowLeft"))  G.sel = (G.sel + n - 1) % n;
+    if(pressed("ArrowRight")) G.sel = (G.sel + 1) % n;
+    if(pressed("ArrowUp"))    G.sel = (G.sel + n - COLS) % n;
+    if(pressed("ArrowDown"))  G.sel = (G.sel + COLS) % n;
+    if(confirmPressed()) beginFight();
   } else if(G.scene === "result"){
-    if(pressed("space")){ G.scene = "select"; }
+    if(confirmPressed()) G.scene = "select";
   }
 }
 
@@ -854,7 +1067,7 @@ function render(){
     ctx.fillText(G.winner.d.city + " · " + G.winner.d.tag, W/2, 282);
     ctx.fillStyle = (G.tick%60<40) ? "#FFFFFF" : "#7A85A8";
     ctx.font = "700 20px system-ui";
-    ctx.fillText("SPACE  캐릭터 선택으로", W/2, 380);
+    ctx.fillText("Z  또는  SPACE  로 캐릭터 선택", W/2, 380);
   }
 }
 
@@ -869,9 +1082,9 @@ function loop(ts){
 requestAnimationFrame(loop);
 
 document.getElementById("hint").innerHTML =
-  '<b>1P</b> <kbd>A</kbd><kbd>D</kbd> 이동 · <kbd>W</kbd> 점프 · <kbd>S</kbd> 가드 · ' +
-  '<kbd>J</kbd> 약공격 · <kbd>K</kbd> 강공격 · <kbd>L</kbd> 필살기 &nbsp;&nbsp; ' +
-  '<b>2P</b> <kbd>←</kbd><kbd>→</kbd> 이동 · <kbd>↑</kbd> 점프 · <kbd>↓</kbd> 가드 · ' +
-  '<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> &nbsp;&nbsp; 선택 화면에서 <kbd>T</kbd> 로 1인/2인 전환';
+  '<b>이동</b> <kbd>←</kbd><kbd>→</kbd> &nbsp; <b>점프</b> <kbd>↑</kbd> &nbsp; ' +
+  '<b>가드</b> <kbd>↓</kbd> &nbsp;&nbsp; <b>약공격</b> <kbd>Z</kbd> &nbsp; ' +
+  '<b>강공격</b> <kbd>X</kbd><kbd>W</kbd> &nbsp; <b>필살기</b> <kbd>C</kbd>' +
+  '<br>한글 입력 상태에서도 그대로 작동합니다. 상대는 컴퓨터가 맡습니다.';
 })();
 </script>
