@@ -1,0 +1,34 @@
+{
+  "cell": 72,
+  "ground": 66,
+  "actions": {
+    "idle": {
+      "row": 0,
+      "frames": 4
+    },
+    "walk": {
+      "row": 1,
+      "frames": 4
+    },
+    "punch": {
+      "row": 2,
+      "frames": 3
+    },
+    "kick": {
+      "row": 3,
+      "frames": 3
+    },
+    "special": {
+      "row": 4,
+      "frames": 3
+    },
+    "hit": {
+      "row": 5,
+      "frames": 2
+    },
+    "ko": {
+      "row": 6,
+      "frames": 1
+    }
+  }
+}

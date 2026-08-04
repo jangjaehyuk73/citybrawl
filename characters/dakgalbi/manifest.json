@@ -1,0 +1,164 @@
+{
+  "cell": [
+    760,
+    1016
+  ],
+  "sprites": {
+    "crouch": {
+      "file": "sprites/crouch.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        70,
+        94,
+        645,
+        937
+      ]
+    },
+    "guard": {
+      "file": "sprites/guard.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        66,
+        108,
+        636,
+        971
+      ]
+    },
+    "hit": {
+      "file": "sprites/hit.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        20,
+        87,
+        695,
+        986
+      ]
+    },
+    "idle": {
+      "file": "sprites/idle.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        125,
+        69,
+        636,
+        979
+      ]
+    },
+    "jump": {
+      "file": "sprites/jump.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        202,
+        124,
+        549,
+        777
+      ]
+    },
+    "kick": {
+      "file": "sprites/kick.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        28,
+        109,
+        745,
+        979
+      ]
+    },
+    "ko": {
+      "file": "sprites/ko.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        14,
+        471,
+        749,
+        702
+      ]
+    },
+    "punch": {
+      "file": "sprites/punch.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        67,
+        95,
+        739,
+        971
+      ]
+    },
+    "special": {
+      "file": "sprites/special.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        79,
+        128,
+        726,
+        946
+      ]
+    },
+    "walkL": {
+      "file": "sprites/walkL.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        74,
+        127,
+        583,
+        946
+      ]
+    },
+    "walkR": {
+      "file": "sprites/walkR.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        75,
+        127,
+        583,
+        946
+      ]
+    },
+    "walk": {
+      "file": "sprites/walk.png",
+      "frame": [
+        760,
+        1016
+      ],
+      "content": [
+        67,
+        148,
+        658,
+        971
+      ]
+    }
+  }
+}

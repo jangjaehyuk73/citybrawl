@@ -1,0 +1,373 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>속초 대게 대전 — 스프라이트 엔진</title>
+<style>
+  :root{ color-scheme:dark; }
+  html,body{ margin:0; height:100%; background:#04121a; }
+  body{ display:flex; flex-direction:column; align-items:center; font-family:-apple-system,system-ui,sans-serif; color:#dff1f5; }
+  h1{ font-size:15px; margin:10px 0 6px; color:#57c4d8; letter-spacing:.5px; }
+  #stage{ width:min(960px,98vw); aspect-ratio:16/9; display:block; border-radius:10px;
+          border:1px solid #1d4652; image-rendering:auto; background:#000; }
+  .hint{ font-size:12px; color:#5aa; margin:8px 0 20px; text-align:center; line-height:1.6; }
+  kbd{ background:#0e2a33; border:1px solid #2b5a66; border-radius:4px; padding:1px 6px; color:#9fe4f0; font-size:11px; }
+</style>
+<h1>🦀 속초 대게 대전 · 스프라이트 엔진 프로토타입</h1>
+<canvas id="stage" width="960" height="540"></canvas>
+<div class="hint">
+  <b>P1</b> &nbsp;<kbd>← →</kbd> 이동 &nbsp;<kbd>↑</kbd> 점프 &nbsp;<kbd>↓</kbd> 앉기·하단방어 &nbsp;<kbd>A</kbd> 가드 &nbsp;<kbd>Z</kbd> 집게치기 &nbsp;<kbd>X</kbd> 발차기 &nbsp;<kbd>C</kbd> 물대포<br>
+  KO 후 <kbd>Enter</kbd> 재시작 · 상대(P2)는 AI
+</div>
+
+<!-- process_all.py 가 갱신하는 스프라이트 메타. 새 포즈를 넣고 process_all 돌리면 자동 반영 -->
+<script src="manifest.js"></script>
+<script>
+const cv = document.getElementById('stage'), ctx = cv.getContext('2d');
+const W=960, H=540, GROUND=452;
+
+// ── manifest → 포즈 테이블 (없는 포즈는 idle 로 폴백) ──
+const M = (window.MANIFEST && window.MANIFEST.sprites) ? window.MANIFEST.sprites : {};
+const FRAME = (window.MANIFEST && window.MANIFEST.cell) || [760,1016];
+const idleMeta = M.idle || {file:'sprites/idle.png', content:[0,0,FRAME[0],FRAME[1]]};
+const LOGICAL = ['idle','walk','punch','kick','jump','special','guard','crouch','hit','ko'];
+// 걷기 스텝 프레임: walkR>walk>idle 우선
+const stepKey = M.walkR ? 'walkR' : (M.walk ? 'walk' : 'idle');
+
+const BBOX={}, SRC={}, FR={};
+function reg(key){ const m = M[key] || idleMeta; BBOX[key]=m.content; SRC[key]=m.file; FR[key]=m.frame||FRAME; }
+LOGICAL.forEach(reg);
+if(M.walkR) reg('walkR'); if(M.walkL) reg('walkL');
+
+const IMG={}; const NEED=[...new Set(Object.values(SRC))]; // 실제 존재하는 파일만 로드
+let loaded=0;
+NEED.forEach(file=>{
+  const im=new Image();
+  im.onload=()=>{ if(++loaded===NEED.length) start(); };
+  im.onerror=()=>{ if(++loaded===NEED.length) start(); };
+  im.src=file;
+  IMG[file]=im;
+});
+const imgOf = key => IMG[SRC[key]];
+
+const IDLE_H = BBOX.idle[3]-BBOX.idle[1];
+const SCALE = 300 / IDLE_H;                 // idle 키 ≈ 300px
+
+// ── 입력 ──
+const KEY={};
+addEventListener('keydown',e=>{ KEY[e.code]=true;
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
+  if(e.code==='Enter' && G.scene==='result') reset();
+});
+addEventListener('keyup',e=>{ KEY[e.code]=false; });
+function p1input(){
+  return { left:KEY['ArrowLeft'], right:KEY['ArrowRight'], up:KEY['ArrowUp'],
+           down:KEY['ArrowDown'], guard:KEY['KeyA'],
+           punch:KEY['KeyZ'], kick:KEY['KeyX'], sp:KEY['KeyC'] };
+}
+
+// ── 전투 상수 (집게 리치형: 닭갈비보다 사거리 김) ──
+const ATK = {
+  punch:{startup:4, active:5, recover:12, dmg:6,  reach:150, boxH:120, yoff:-165, push:5,  kick:false},
+  kick: {startup:8, active:6, recover:18, dmg:10, reach:185, boxH:150, yoff:-120, push:8,  kick:true},
+};
+const SP = {startup:12, active:4, recover:22};
+
+// ── 파이터 ──
+function Fighter(x, faceRight){
+  this.x=x; this.y=GROUND; this.vx=0; this.vy=0;
+  this.face=faceRight?1:-1;
+  this.hpMax=240; this.hp=240;
+  this.state='idle'; this.t=0; this.atk=null; this.flash=0;
+  this.spCd=0; this.guarding=false; this.ai={think:0,want:'idle'}; this.tint=0;
+}
+Fighter.prototype.busy=function(){ return this.state==='attack'||this.state==='hit'||this.state==='ko'; };
+Fighter.prototype.startAtk=function(kind){
+  if(this.busy()||this.y<GROUND) return;
+  this.state='attack'; this.t=0; this.atk={kind:kind, spec:ATK[kind], hit:false};
+};
+Fighter.prototype.startSp=function(){
+  if(this.busy()||this.y<GROUND||this.spCd>0) return;
+  this.state='attack'; this.t=0; this.atk={kind:'sp', spec:SP, hit:false, fired:false};
+  this.spCd=140;
+};
+Fighter.prototype.hurt=function(dmg, dir, guard){
+  if(this.state==='ko') return;
+  const real = guard ? Math.max(1,Math.round(dmg*0.25)) : dmg;
+  this.hp -= real; this.flash=6;
+  if(guard){ this.vx = dir*3; return; }
+  this.state='hit'; this.t=0; this.vx=dir*7;
+  if(this.hp<=0){ this.hp=0; this.state='ko'; this.t=0; this.vy=-9; G.shake=16;
+    G.winner = (this===G.p1)?G.p2:G.p1; G.scene='result'; G.resultT=0; }
+};
+
+// ── AI ──
+function aiInput(me, foe){
+  const dist=Math.abs(foe.x-me.x), dir=foe.x>me.x?1:-1;
+  const o={left:false,right:false,up:false,down:false,guard:false,punch:false,kick:false,sp:false};
+  if(--me.ai.think<=0){
+    me.ai.think = 18+Math.random()*26; const r=Math.random();
+    const canSp = me.spCd<=0;
+    if(dist>360) me.ai.want = (canSp&&r<0.35)?'sp':'approach';
+    else if(dist>200) me.ai.want = r<0.45?'approach':((canSp&&r<0.6)?'sp':'back');
+    else me.ai.want = r<0.3?'punch':(r<0.46?'kick':(r<0.8?'guard':'back'));
+  }
+  const w=me.ai.want;
+  if(w==='approach') (dir>0?o.right=true:o.left=true);
+  else if(w==='back') (dir>0?o.left=true:o.right=true);
+  else if(w==='guard') o.guard=true;
+  else if(w==='punch') o.punch=true;
+  else if(w==='kick') o.kick=true;
+  else if(w==='sp') o.sp=true;
+  for(const p of G.projs) if(p.owner!==me && Math.abs(p.x-me.x)<260 &&
+      ((p.vx>0&&p.x<me.x)||(p.vx<0&&p.x>me.x)) && Math.random()<0.72){ o.guard=true; o.punch=o.kick=false; }
+  return o;
+}
+
+// ── 물리·판정 ──
+function step(f, foe){
+  const inp = f.human ? p1input() : aiInput(f, foe);
+  f.t++;
+  if(f.spCd>0) f.spCd--;
+  if(f.state==='ko'){ f.vy+=0.7; f.y+=f.vy; f.x+=f.vx; f.vx*=0.9;
+    if(f.y>GROUND){f.y=GROUND;f.vy=0;f.vx=0;} return; }
+  if(f.state==='hit'){ f.x+=f.vx; f.vx*=0.85; if(f.t>15){f.state='idle';f.t=0;} }
+
+  const air = f.y<GROUND;
+  const guarding = (inp.guard||inp.down) && !air && f.state!=='attack' && f.state!=='hit';
+
+  if(f.state!=='attack'&&f.state!=='hit'){
+    if(inp.sp) f.startSp();
+    else if(inp.kick) f.startAtk('kick');
+    else if(inp.punch) f.startAtk('punch');
+  }
+  if(f.state!=='attack'&&f.state!=='hit'){
+    if(guarding){ f.state = inp.down ? 'crouch' : 'guard'; f.vx=0; }
+    else {
+      const sp=4.2;
+      if(inp.left&&!inp.right){ f.vx=-sp; f.state=air?'jump':'walk'; }
+      else if(inp.right&&!inp.left){ f.vx=sp; f.state=air?'jump':'walk'; }
+      else { f.vx=0; if(!air) f.state='idle'; }
+      if(inp.up&&!air){ f.vy=-19; f.state='jump'; }
+    }
+  }
+  if(f.state==='attack'){
+    const a=f.atk, s=a.spec; f.vx*=0.8;
+    if(a.kind==='sp' && f.t===s.startup && !a.fired){ a.fired=true; fireSpecial(f); }
+    if(f.t > s.startup+s.active+s.recover){ f.state='idle'; f.t=0; f.atk=null; }
+  }
+  f.vy+=0.7; f.y+=f.vy; f.x+=f.vx;
+  if(f.y>=GROUND){ f.y=GROUND; f.vy=0; if(f.state==='jump') f.state='idle'; }
+  f.x=Math.max(110, Math.min(W-110, f.x));
+  if(!f.busy()) f.face = foe.x>f.x?1:-1;
+  if(f.flash>0) f.flash--;
+  f.guarding=guarding;
+}
+function bodyBox(f){ return {x:f.x, y:f.y-135, w:95, h:250}; }
+function atkBox(f){
+  if(f.state!=='attack'||!f.atk||f.atk.kind==='sp') return null;
+  const s=f.atk.spec;
+  if(f.t<s.startup||f.t>s.startup+s.active) return null;
+  return {x:f.x+f.face*(s.reach*0.5), y:f.y+s.yoff, w:s.reach, h:s.boxH, dmg:s.dmg, push:s.push};
+}
+function overlap(a,b){ return Math.abs(a.x-b.x)<(a.w+b.w)/2 && Math.abs(a.y-b.y)<(a.h+b.h)/2; }
+function resolveHit(a,b){
+  const box=atkBox(a); if(!box||a.atk.hit) return;
+  if(overlap(box, bodyBox(b))){ a.atk.hit=true;
+    b.hurt(box.dmg, a.face, b.guarding);
+    G.shake=b.guarding?4:9; G.freeze=b.guarding?2:4;
+    addFx(box.x - a.face*box.w*0.3, box.y, b.guarding?'guard':'hit');
+  }
+}
+// 필살기: 물대포(거품) 투사체
+function fireSpecial(f){
+  G.projs.push({x:f.x+f.face*90, y:f.y-155, vx:f.face*8, owner:f, t:0, dmg:12,
+                bub:Array.from({length:14},()=>({a:Math.random()*7, r:6+Math.random()*20,
+                     sp:0.4+Math.random()*1.1, rad:3+Math.random()*7}))});
+}
+function stepProjs(){
+  for(let i=G.projs.length-1;i>=0;i--){
+    const p=G.projs[i]; p.t++; p.x+=p.vx;
+    if(p.x<-60||p.x>W+60){ G.projs.splice(i,1); continue; }
+    const foe = p.owner===G.p1?G.p2:G.p1;
+    if(overlap({x:p.x,y:p.y,w:84,h:150}, bodyBox(foe))){
+      foe.hurt(p.dmg, p.vx>0?1:-1, foe.guarding);
+      G.shake=foe.guarding?5:11; G.freeze=3;
+      addFx(p.x, p.y, foe.guarding?'guard':'hit'); G.projs.splice(i,1);
+    }
+  }
+}
+function addFx(x,y,kind){ G.fx.push({x,y,kind,t:0,life:16}); }
+
+// ── 상태 → 포즈 ──
+function poseOf(f){
+  switch(f.state){
+    case 'walk': return (Math.sin(G.tick*0.42) > 0.15) ? stepKey : 'idle';
+    case 'jump': return 'jump';
+    case 'guard': return 'guard';
+    case 'crouch': return 'crouch';
+    case 'hit': return 'hit';
+    case 'ko': return 'ko';
+    case 'attack':
+      return f.atk.kind==='kick'?'kick':(f.atk.kind==='sp'?'special':'punch');
+    default: return 'idle';
+  }
+}
+
+// ── 렌더 ──
+function drawFighter(f){
+  const pose=poseOf(f), b=BBOX[pose], img=imgOf(pose);
+  if(!img || !img.complete || !img.naturalWidth) return;
+  const cx=(b[0]+b[2])/2, by=b[3];
+  ctx.save(); ctx.fillStyle='rgba(0,0,0,.32)';
+  ctx.beginPath(); ctx.ellipse(f.x, GROUND+2, 58, 13, 0,0,7); ctx.fill(); ctx.restore();
+  // 프레이밍 편차 있는 포즈는 idle 키에 맞춰 정규화
+  let s = SCALE * (IDLE_H/(b[3]-b[1]));
+  let bob=0;
+  if(f.state==='walk')      bob = -Math.abs(Math.sin(G.tick*0.42))*6;
+  else if(f.state==='idle') bob = -Math.abs(Math.sin(G.tick*0.06))*2.5;
+  ctx.save();
+  ctx.translate(f.x, f.y+bob); ctx.scale(f.face,1);
+  let filt='';
+  if(f.tint) filt += 'hue-rotate('+f.tint+'deg) saturate(1.2) ';   // P2 색 스왑(미러 구별)
+  if(f.flash>0 && (f.flash%2===0)) filt += 'brightness(2.4) saturate(1.4)';
+  ctx.filter = filt || 'none';
+  const fr=FR[pose];
+  ctx.drawImage(img, -cx*s, -by*s, fr[0]*s, fr[1]*s);
+  ctx.filter='none';
+  ctx.restore();
+}
+// 필살기 물대포 — 절차적 거품/물보라 (additive)
+function drawProjs(){
+  for(const p of G.projs){
+    const dir = p.vx>0?1:-1;
+    ctx.save(); ctx.translate(p.x,p.y);
+    ctx.globalCompositeOperation='lighter';
+    // 물 코어
+    const core=ctx.createRadialGradient(0,0,3,0,0,42);
+    core.addColorStop(0,'rgba(210,245,255,0.95)');
+    core.addColorStop(0.45,'rgba(80,190,235,0.7)');
+    core.addColorStop(1,'rgba(30,110,180,0)');
+    ctx.fillStyle=core; ctx.beginPath(); ctx.arc(0,0,42,0,7); ctx.fill();
+    // 꼬리 물살
+    ctx.fillStyle='rgba(120,210,240,0.5)';
+    ctx.beginPath(); ctx.ellipse(-dir*34,0, 40,16, 0,0,7); ctx.fill();
+    // 거품들
+    for(const bb of p.bub){
+      const ang=bb.a + p.t*0.05*bb.sp;
+      const bx=Math.cos(ang)*bb.r - dir*(p.t*bb.sp)%50*0.0, by=Math.sin(ang)*bb.r*0.7;
+      ctx.beginPath();
+      ctx.fillStyle='rgba(190,235,255,'+(0.35+0.4*Math.abs(Math.sin(ang)))+')';
+      ctx.arc(bx - dir*10, by, bb.rad,0,7); ctx.fill();
+    }
+    ctx.globalCompositeOperation='source-over';
+    ctx.restore();
+  }
+}
+function drawFx(){
+  for(let i=G.fx.length-1;i>=0;i--){
+    const e=G.fx[i]; e.t++; const k=e.t/e.life;
+    ctx.save(); ctx.translate(e.x,e.y); ctx.globalAlpha=1-k;
+    ctx.strokeStyle = e.kind==='guard'?'#9cf':'#8fe8ff'; ctx.lineWidth=4;
+    for(let j=0;j<7;j++){ const a=j*0.9+e.t*0.12, r1=10+k*30, r2=24+k*46;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a)*r1,Math.sin(a)*r1);
+      ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2); ctx.stroke(); }
+    ctx.restore();
+    if(e.t>=e.life) G.fx.splice(i,1);
+  }
+}
+// 절차적 속초 해안 배경 (바다/수평선/모래) — 이미지 에셋 없이
+function drawStage(){
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#0a3350'); sky.addColorStop(0.42,'#13618e'); sky.addColorStop(0.55,'#1d84b0');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+  // 수평선 위 바다 반짝임
+  ctx.save(); ctx.globalAlpha=0.25; ctx.strokeStyle='#bfeaff'; ctx.lineWidth=1;
+  for(let y=250; y<GROUND-30; y+=10){
+    ctx.beginPath();
+    for(let x=0;x<=W;x+=24){ const yy=y+Math.sin((x*0.03)+(y*0.5)+G.tick*0.03)*2;
+      x===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy); }
+    ctx.stroke();
+  }
+  ctx.restore();
+  // 모래사장(하단)
+  const sand=ctx.createLinearGradient(0,GROUND-40,0,H);
+  sand.addColorStop(0,'#c8a86a'); sand.addColorStop(1,'#a8894f');
+  ctx.fillStyle=sand; ctx.fillRect(0,GROUND-10,W,H-(GROUND-10));
+  // 비네트 + 발밑 그림자 띠
+  const vg=ctx.createRadialGradient(W/2,H*0.44,H*0.42, W/2,H*0.5,H*1.0);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,10,20,0.36)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+  const band=ctx.createLinearGradient(0,GROUND-90,0,GROUND+30);
+  band.addColorStop(0,'rgba(4,14,22,0)'); band.addColorStop(1,'rgba(4,14,22,0.38)');
+  ctx.fillStyle=band; ctx.fillRect(0,GROUND-90,W,120);
+}
+function drawHUD(){
+  function bar(x,hp,mx,flip){
+    const w=380,h=22;
+    ctx.fillStyle='#0e2630'; ctx.fillRect(x,24,w,h);
+    const p=Math.max(0,hp/mx);
+    ctx.fillStyle = p>0.3?'#3fb6d6':'#d0492e';
+    if(flip) ctx.fillRect(x+w-w*p,26,w*p-2,h-4); else ctx.fillRect(x+2,26,w*p-2,h-4);
+    ctx.strokeStyle='#9fe4f0'; ctx.lineWidth=2; ctx.strokeRect(x,24,w,h);
+  }
+  bar(30,G.p1.hp,G.p1.hpMax,false);
+  bar(W-410,G.p2.hp,G.p2.hpMax,true);
+  ctx.fillStyle='#dff1f5'; ctx.font='bold 15px sans-serif';
+  ctx.textAlign='left'; ctx.fillText('속초 대게 (P1)',30,64);
+  ctx.textAlign='right'; ctx.fillText('속초 대게 (P2)',W-30,64);
+  ctx.textAlign='center';
+  if(G.msgT>0){ ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='bold 40px sans-serif';
+    ctx.fillText(G.msg, W/2, 160); }
+  if(G.scene==='result'){ ctx.fillStyle='#57c4d8'; ctx.font='bold 46px sans-serif';
+    ctx.fillText((G.winner===G.p1?'P1':'P2')+' WIN!', W/2, 250);
+    ctx.fillStyle='#dff1f5'; ctx.font='16px sans-serif';
+    ctx.fillText('Enter 로 재시작', W/2, 300); }
+}
+
+// ── 게임 상태 ──
+const G={ scene:'fight', p1:null, p2:null, projs:[], fx:[], shake:0, freeze:0,
+          msg:'', msgT:0, winner:null, resultT:0, tick:0 };
+function reset(){
+  G.p1=new Fighter(270,true);   G.p1.human=true;  G.p1.tint=0;      // 원래 주황
+  G.p2=new Fighter(690,false);  G.p2.human=false; G.p2.tint=150;    // 파랑 계열 스왑
+  G.projs=[]; G.fx=[]; G.scene='fight'; G.winner=null;
+  G.msg='FIGHT!'; G.msgT=70;
+}
+function start(){ reset(); requestAnimationFrame(loop); }
+
+function update(){
+  G.tick++;
+  if(G.freeze>0){ G.freeze--; return; }
+  if(G.scene==='fight'){
+    step(G.p1,G.p2); step(G.p2,G.p1);
+    resolveHit(G.p1,G.p2); resolveHit(G.p2,G.p1);
+    stepProjs();
+  } else if(G.scene==='result'){
+    G.resultT++; step(G.p1,G.p2); step(G.p2,G.p1); stepProjs();
+  }
+  if(G.msgT>0) G.msgT--;
+}
+
+// 고정 60hz 타임스텝 (고주사율 배속 방지)
+const STEP = 1000/60;
+let _last=0, _acc=0;
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(!_last) _last=ts;
+  _acc += ts-_last; _last=ts;
+  if(_acc>120) _acc=120;
+  let steps=0;
+  while(_acc>=STEP && steps<4){ update(); _acc-=STEP; steps++; }
+  render();
+}
+function render(){
+  ctx.save();
+  if(G.shake>0){ ctx.translate((Math.random()-.5)*G.shake,(Math.random()-.5)*G.shake); G.shake*=0.85; if(G.shake<0.5)G.shake=0; }
+  drawStage();
+  const order = G.p1.x<=G.p2.x ? [G.p1,G.p2] : [G.p2,G.p1];
+  drawFighter(order[0]); drawProjs(); drawFighter(order[1]);
+  drawFx();
+  ctx.restore();
+  drawHUD();
+}
+</script>

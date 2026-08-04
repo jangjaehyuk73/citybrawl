@@ -1,0 +1,94 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>춘천닭갈비 · 스프라이트 미리보기</title>
+<style>
+  :root{ color-scheme:dark; }
+  body{ margin:0; font-family:-apple-system,system-ui,sans-serif;
+        background:#1b1116; color:#f0e4d2; }
+  header{ padding:18px 20px 6px; }
+  h1{ margin:0; font-size:19px; letter-spacing:.5px; }
+  p{ margin:4px 0 0; color:#c9a; font-size:13px; }
+  .controls{ padding:10px 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .controls label{ font-size:13px; color:#e0c8a8; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+         gap:14px; padding:10px 20px 40px; }
+  .cardwrap{ background:#2a1a20; border:1px solid #4a2c30; border-radius:10px;
+             padding:10px; text-align:center; }
+  .cardwrap canvas{ image-rendering:pixelated; background:
+      repeating-conic-gradient(#3a2830 0 25%, #322028 0 50%) 0 0/16px 16px;
+      border-radius:6px; width:100%; height:auto; }
+  .cardwrap .nm{ margin-top:8px; font-size:13px; color:#f2c14e; font-weight:600; }
+  .cardwrap .fr{ font-size:11px; color:#a88; }
+</style>
+<header>
+  <h1>🔥 춘천닭갈비 — 픽셀 스프라이트 시제품</h1>
+  <p>불의 붉은 수탉 파이터 · 옆면 격투 시점 · 네이티브 72px → nearest-neighbor 확대</p>
+</header>
+<div class="controls">
+  <label>속도 <input id="fps" type="range" min="2" max="16" value="7"> <span id="fpsv">7</span> fps</label>
+  <label><input id="face" type="checkbox"> 좌우 반전</label>
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+const CELL = 72, SCALE = 3;
+const META = {
+  idle:   {row:0, frames:4, hold:false},
+  walk:   {row:1, frames:4, hold:false},
+  punch:  {row:2, frames:3, hold:true},
+  kick:   {row:3, frames:3, hold:true},
+  special:{row:4, frames:3, hold:true},
+  hit:    {row:5, frames:2, hold:true},
+  ko:     {row:6, frames:1, hold:true},
+};
+const LABEL = {idle:"대기",walk:"걷기",punch:"주먹치기",kick:"불발차기",
+               special:"불판 화염",hit:"피격",ko:"넉다운"};
+
+const img = new Image();
+img.src = "dakgalbi_sheet.png";
+const cards = [];
+
+img.onload = () => {
+  const grid = document.getElementById("grid");
+  for(const name of Object.keys(META)){
+    const m = META[name];
+    const wrap = document.createElement("div");
+    wrap.className = "cardwrap";
+    const cv = document.createElement("canvas");
+    cv.width = CELL*SCALE; cv.height = CELL*SCALE;
+    const nm = document.createElement("div"); nm.className="nm"; nm.textContent=LABEL[name];
+    const fr = document.createElement("div"); fr.className="fr"; fr.textContent=m.frames+" 프레임";
+    wrap.append(cv, nm, fr); grid.append(wrap);
+    cards.push({name, m, ctx: cv.getContext("2d"), f:0, acc:0});
+  }
+  requestAnimationFrame(loop);
+};
+
+let last = 0;
+function loop(ts){
+  const fps = +document.getElementById("fps").value;
+  document.getElementById("fpsv").textContent = fps;
+  const flip = document.getElementById("face").checked;
+  const dt = ts - last; last = ts;
+  for(const c of cards){
+    c.acc += dt;
+    // attack/hit 은 마지막 프레임에서 잠깐 머문 뒤 반복
+    const step = 1000/fps;
+    if(c.acc >= step){
+      c.acc = 0;
+      c.f = (c.f + 1) % (c.m.frames + (c.m.hold ? 3 : 0));
+    }
+    const fi = Math.min(c.f, c.m.frames-1);
+    const g = c.ctx;
+    g.clearRect(0,0,CELL*SCALE,CELL*SCALE);
+    g.imageSmoothingEnabled = false;
+    g.save();
+    if(flip){ g.translate(CELL*SCALE,0); g.scale(-1,1); }
+    g.drawImage(img, fi*CELL, c.m.row*CELL, CELL, CELL,
+                0,0, CELL*SCALE, CELL*SCALE);
+    g.restore();
+  }
+  requestAnimationFrame(loop);
+}
+</script>

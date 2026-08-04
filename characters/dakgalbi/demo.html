@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>춘천닭갈비 · 게임 적용 데모</title>
+<style>
+  :root{ color-scheme:dark; }
+  body{ margin:0; font-family:-apple-system,system-ui,sans-serif; background:#161016; color:#f0e4d2; }
+  header{ padding:16px 20px 4px; } h1{ margin:0; font-size:18px; } p{ margin:4px 0 0; color:#c9a; font-size:13px; }
+  .wrap{ padding:14px 20px 40px; display:flex; flex-direction:column; gap:18px; }
+  canvas{ display:block; border-radius:10px; border:1px solid #4a2c30; background:#0e1020; max-width:100%; height:auto; }
+  .lbl{ font-size:12px; color:#e0b892; margin:2px 0 6px; }
+</style>
+<header>
+  <h1>🔥 춘천닭갈비 — 게임 적용 데모 (투명 스프라이트)</h1>
+  <p>배경 제거·정렬된 스프라이트를 실제 게임 화면(960×540)에 균일 배율·발 정렬로 배치</p>
+</header>
+<div class="wrap">
+  <div><div class="lbl">① 대전 화면 — idle vs special (좌우 반전 포함)</div>
+    <canvas id="vs" width="960" height="540"></canvas></div>
+  <div><div class="lbl">② 전체 액션 10종 — 같은 배율·바닥 정렬 (jump는 공중, ko는 눕기)</div>
+    <canvas id="all" width="1920" height="420"></canvas></div>
+</div>
+<script>
+const GROUND=452, W=960, H=540;
+let MAN, IMGS={};
+const ORDER=['idle','walk','punch','kick','jump','special','guard','crouch','hit','ko'];
+
+function stage(g, ground=GROUND, w=W, h=H){
+  const sky=g.createLinearGradient(0,0,0,ground);
+  sky.addColorStop(0,"#2a1420"); sky.addColorStop(1,"#4a2230");
+  g.fillStyle=sky; g.fillRect(0,0,w,ground);
+  g.strokeStyle="rgba(255,150,60,.08)"; g.lineWidth=2;
+  for(let x=0;x<w;x+=44){ g.beginPath();g.moveTo(x,80);g.lineTo(x,ground);g.stroke(); }
+  g.fillStyle="#5a2a20"; g.fillRect(0,ground,w,h-ground);
+  g.fillStyle="#7a3a28"; g.fillRect(0,ground,w,6);
+}
+
+// content bottom-center를 (fx, groundY)에 맞춰 균일 배율 S로 그림
+function drawPose(g, name, fx, groundY, S, flip){
+  const m=MAN.sprites[name], img=IMGS[name], c=m.content;
+  const cx=(c[0]+c[2])/2, by=c[3];
+  g.save(); g.translate(fx, groundY); if(flip) g.scale(-1,1);
+  g.drawImage(img, -cx*S, -by*S, img.width*S, img.height*S);
+  g.restore();
+}
+
+function render(){
+  const idleH = MAN.sprites.idle.content[3]-MAN.sprites.idle.content[1];
+  const S = 270/idleH;                    // idle 키 270px 기준 균일 배율
+
+  // ① VS
+  const g=document.getElementById('vs').getContext('2d'); stage(g);
+  g.fillStyle="rgba(255,255,255,.5)"; g.font="12px sans-serif"; g.textAlign="center";
+  g.fillText("VS", W/2, 250);
+  drawPose(g,'idle',300,GROUND,S,false);
+  drawPose(g,'special',690,GROUND,S,true);
+
+  // ② 전체
+  const ga=document.getElementById('all').getContext('2d'); stage(ga,360,1920,420);
+  const step=1920/ORDER.length;
+  ga.font="14px sans-serif"; ga.textAlign="center";
+  ORDER.forEach((n,i)=>{
+    const fx=step*i+step/2;
+    const gy = n==='jump' ? 360-70 : 360;        // jump는 공중
+    drawPose(ga,n,fx,gy,S*0.62,false);
+    ga.fillStyle="#f2c14e"; ga.fillText(n, fx, 405);
+  });
+}
+
+fetch('manifest.json').then(r=>r.json()).then(async m=>{
+  MAN=m;
+  await Promise.all(ORDER.map(n=>new Promise(res=>{
+    const im=new Image(); im.onload=()=>{IMGS[n]=im;res();}; im.src=m.sprites[n].file+'?v='+Date.now();
+  })));
+  render();
+});
+</script>

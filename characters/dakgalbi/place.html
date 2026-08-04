@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>춘천닭갈비 · 게임 배치 확인</title>
+<style>
+  :root{ color-scheme:dark; }
+  body{ margin:0; font-family:-apple-system,system-ui,sans-serif; background:#161016; color:#f0e4d2; }
+  header{ padding:16px 20px 6px; }
+  h1{ margin:0; font-size:18px; } p{ margin:4px 0 0; color:#c9a; font-size:13px; }
+  .wrap{ padding:14px 20px 40px; }
+  canvas{ display:block; border-radius:10px; width:min(960px,95vw); height:auto;
+          background:#0e1020; border:1px solid #4a2c30; }
+</style>
+<header>
+  <h1>🔥 춘천닭갈비 — 게임 화면 배치 (절반 높이 270px)</h1>
+  <p>Gemini 이미지 배경 제거본을 대전 화면에 마주 세운 모습</p>
+</header>
+<div class="wrap"><canvas id="stage" width="960" height="540"></canvas></div>
+<script>
+const GROUND = 452, W=960, H=540;
+const img = new Image();
+img.src = "dakgalbi.png?v=" + Date.now();
+img.onload = () => {
+  const g = document.getElementById("stage").getContext("2d");
+  // 배경
+  const sky=g.createLinearGradient(0,0,0,GROUND);
+  sky.addColorStop(0,"#2a1420"); sky.addColorStop(1,"#4a2230");
+  g.fillStyle=sky; g.fillRect(0,0,W,GROUND);
+  g.strokeStyle="rgba(255,150,60,.10)"; g.lineWidth=2;
+  for(let x=0;x<W;x+=44){ g.beginPath();g.moveTo(x,90);g.lineTo(x,GROUND);g.stroke(); }
+  g.fillStyle="#5a2a20"; g.fillRect(0,GROUND,W,H-GROUND);
+  g.fillStyle="#7a3a28"; g.fillRect(0,GROUND,W,6);
+
+  // HP 바 목업
+  function hp(x,flip){ g.fillStyle="#20141a"; g.fillRect(x,24,360,20);
+    g.fillStyle="#e0b050"; g.fillRect(flip?x:x, 26, 356*0.82, 16);
+    g.strokeStyle="#f0d090"; g.strokeRect(x,24,360,20); }
+  hp(30,false); hp(570,true);
+  g.fillStyle="#f0e4d2"; g.font="bold 16px sans-serif";
+  g.fillText("춘천닭갈비", 34, 62); g.textAlign="right"; g.fillText("춘천닭갈비", 926, 62); g.textAlign="left";
+
+  // 파이터 배치: 키 270px, 발바닥이 바닥에
+  const targetH = 270;
+  const scale = targetH / img.height;
+  const w = img.width*scale, h = img.height*scale;
+  function draw(cx, flip){
+    g.save(); g.translate(cx, GROUND);
+    if(flip) g.scale(-1,1);
+    // 접지 그림자
+    g.fillStyle="rgba(0,0,0,.3)"; g.beginPath(); g.ellipse(0,4,w*0.32,10,0,0,7); g.fill();
+    g.drawImage(img, -w/2, -h+6, w, h);
+    g.restore();
+  }
+  draw(285, false);   // P1
+  draw(675, true);    // P2 (좌우 반전)
+
+  g.fillStyle="rgba(255,255,255,.5)"; g.font="12px sans-serif"; g.textAlign="center";
+  g.fillText("VS", W/2, 300);
+};
+</script>

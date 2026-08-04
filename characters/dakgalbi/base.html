@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>춘천닭갈비 · 기본 이미지</title>
+<style>
+  :root{ color-scheme:dark; }
+  body{ margin:0; font-family:-apple-system,system-ui,sans-serif;
+        background:#161016; color:#f0e4d2; }
+  header{ padding:16px 20px 4px; }
+  h1{ margin:0; font-size:18px; }
+  p{ margin:4px 0 0; color:#c9a; font-size:13px; }
+  .row{ display:flex; gap:20px; flex-wrap:wrap; padding:16px 20px 40px; align-items:flex-start; }
+  .panel{ background:#221820; border:1px solid #4a2c30; border-radius:12px; padding:12px; }
+  .cap{ font-size:12px; color:#e0b892; margin-top:8px; text-align:center; }
+  canvas{ display:block; border-radius:8px; }
+  #stage{ width:640px; height:360px; background:#0e1020; }
+  #detail{ width:420px; height:420px;
+    background:repeating-conic-gradient(#2a2028 0 25%, #241a22 0 50%) 0 0/24px 24px; }
+</style>
+<header>
+  <h1>🔥 춘천닭갈비 — 인간형 수탉 파이터 · 기본 이미지</h1>
+  <p>관절 리그 렌더 · 화면 절반 높이(270px) 배치 확인 + 디테일 확대</p>
+</header>
+<div class="row">
+  <div class="panel">
+    <canvas id="stage" width="960" height="540"></canvas>
+    <div class="cap">게임 화면(960×540)에서 실제 크기 · 점선 = 화면 절반</div>
+  </div>
+  <div class="panel">
+    <canvas id="detail" width="840" height="840"></canvas>
+    <div class="cap">디테일 확대</div>
+  </div>
+</div>
+
+<script src="rig.js"></script>
+<script>
+const GROUND = 452;
+
+function drawStage(ctx){
+  const W=960,H=540;
+  const sky=ctx.createLinearGradient(0,0,0,GROUND);
+  sky.addColorStop(0,"#241a2e"); sky.addColorStop(1,"#3a2740");
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,GROUND);
+  // 불판 느낌 배경 격자
+  ctx.strokeStyle="rgba(255,140,60,.10)"; ctx.lineWidth=2;
+  for(let x=0;x<W;x+=48){ ctx.beginPath();ctx.moveTo(x,120);ctx.lineTo(x,GROUND);ctx.stroke(); }
+  // 바닥
+  ctx.fillStyle="#5a2a22"; ctx.fillRect(0,GROUND,W,H-GROUND);
+  ctx.fillStyle="#7a3a2a"; ctx.fillRect(0,GROUND,W,6);
+  // 절반 높이 가이드
+  ctx.strokeStyle="rgba(255,255,255,.35)"; ctx.setLineDash([8,6]); ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle="rgba(255,255,255,.6)"; ctx.font="13px sans-serif";
+  ctx.fillText("화면 절반 (270px)", 12, H/2-8);
+}
+
+function placeCharacter(ctx, targetH, footX, footY){
+  const scale = targetH / Dakgalbi.CHAR_H;
+  const img = Dakgalbi.render(Dakgalbi.BASE, scale * 2); // 2x 초과샘플 후 축소로 선명
+  const w = img.width/2, h = img.height/2;
+  // 발 바닥(ank y≈276)이 footY 에 오도록
+  const feetInImg = 276/Dakgalbi.CHAR_H * h;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(img, footX - w/2, footY - feetInImg, w, h);
+}
+
+window.addEventListener("load", ()=>{
+  const s = document.getElementById("stage").getContext("2d");
+  drawStage(s);
+  placeCharacter(s, 270, 300, GROUND+6);   // 화면 절반 높이
+
+  const d = document.getElementById("detail").getContext("2d");
+  const big = Dakgalbi.render(Dakgalbi.BASE, 2.85);
+  d.imageSmoothingEnabled = false;
+  d.drawImage(big, (840-big.width)/2, (840-big.height)/2);
+});
+</script>
