@@ -38,7 +38,7 @@ Object.values(DAK.sprites).forEach(m=>m.frame=DAK_F);
 
 const DAE_M=(window.MANIFEST&&window.MANIFEST.sprites)||{};
 const DAE_CELL=(window.MANIFEST&&window.MANIFEST.cell)||[760,1016];
-const DAE={ dir:'', label:'속초 대게', proj:'water',
+const DAE={ dir:'', label:'속초 대게', proj:'water', jumpV:21, koFlip:true,
   stepKey: DAE_M.walkR?'walkR':(DAE_M.walk?'walk':'idle'), sprites:DAE_M, cell:DAE_CELL };
 
 const NEED=['idle','walk','walkR','walkL','punch','kick','jump','special','guard','crouch','hit','ko'];
@@ -50,7 +50,8 @@ function buildChar(def){
   for(const k of NEED){ const m=resolve(k);
     poses[k]={file:def.dir+m.file, content:m.content, frame:m.frame||def.cell||[760,1016]}; }
   const ih=poses.idle.content[3]-poses.idle.content[1];
-  return {poses, idleH:ih, scale:TARGET/ih, proj:def.proj, label:def.label,
+  return {poses, idleH:ih, idleFrameH:poses.idle.frame[1], scale:TARGET/ih,
+          proj:def.proj, label:def.label, jumpV:def.jumpV||19, koFlip:!!def.koFlip,
           stepKey:(S[def.stepKey]?def.stepKey:(S.walk?'walk':'idle'))};
 }
 const CHAR={ dak:buildChar(DAK), dae:buildChar(DAE) };
@@ -59,6 +60,7 @@ const CHAR={ dak:buildChar(DAK), dae:buildChar(DAE) };
 const IMG={}; const FILES=new Set();
 for(const c of [CHAR.dak,CHAR.dae]) for(const k in c.poses) FILES.add(c.poses[k].file);
 const FIRE=[1,2,3,4].map(n=>{const im=new Image();im.src=DAK.dir+'fx/fire'+n+'.png';return im;});
+const BG=new Image(); BG.src='stage/yeongdeok_muted.png';   // 영덕항 배경(블러+톤다운)
 let need=FILES.size, loaded=0;
 FILES.forEach(f=>{ const im=new Image(); im.onload=im.onerror=()=>{ if(++loaded===need) start(); }; im.src=f; IMG[f]=im; });
 
@@ -96,10 +98,11 @@ function aiInput(me,foe){ const dist=Math.abs(foe.x-me.x),dir=foe.x>me.x?1:-1;
   const o={left:0,right:0,up:0,down:0,guard:0,punch:0,kick:0,sp:0};
   if(--me.ai.think<=0){ me.ai.think=18+Math.random()*26; const r=Math.random(),canSp=me.spCd<=0;
     if(dist>360) me.ai.want=(canSp&&r<0.35)?'sp':'approach';
-    else if(dist>200) me.ai.want=r<0.45?'approach':((canSp&&r<0.6)?'sp':'back');
+    else if(dist>200) me.ai.want=r<0.12?'jump':(r<0.5?'approach':((canSp&&r<0.62)?'sp':'back'));
     else me.ai.want=r<0.3?'punch':(r<0.46?'kick':(r<0.8?'guard':'back')); }
   const w=me.ai.want;
   if(w==='approach')(dir>0?o.right=1:o.left=1); else if(w==='back')(dir>0?o.left=1:o.right=1);
+  else if(w==='jump'){o.up=1;(dir>0?o.right=1:o.left=1);}
   else if(w==='guard')o.guard=1; else if(w==='punch')o.punch=1; else if(w==='kick')o.kick=1; else if(w==='sp')o.sp=1;
   for(const p of G.projs) if(p.owner!==me&&Math.abs(p.x-me.x)<260&&((p.vx>0&&p.x<me.x)||(p.vx<0&&p.x>me.x))&&Math.random()<0.72){o.guard=1;o.punch=o.kick=0;}
   return o; }
@@ -115,7 +118,7 @@ function step(f,foe){ const inp=f.human?p1input():aiInput(f,foe); f.t++; if(f.sp
       if(inp.left&&!inp.right){f.vx=-sp;f.state=air?'jump':'walk';}
       else if(inp.right&&!inp.left){f.vx=sp;f.state=air?'jump':'walk';}
       else{f.vx=0;if(!air)f.state='idle';}
-      if(inp.up&&!air){f.vy=-19;f.state='jump';} } }
+      if(inp.up&&!air){f.vy=-f.char.jumpV;f.state='jump';} } }
   if(f.state==='attack'){ const a=f.atk,s=a.spec; f.vx*=0.8;
     if(a.kind==='sp'&&f.t===s.startup&&!a.fired){a.fired=true;fireSpecial(f);}
     if(f.t>s.startup+s.active+s.recover){f.state='idle';f.t=0;f.atk=null;} }
@@ -151,13 +154,21 @@ function poseOf(f){ switch(f.state){
 
 function drawFighter(f){ const c=f.char, pose=poseOf(f), P=c.poses[pose], img=IMG[P.file];
   if(!img||!img.complete||!img.naturalWidth) return;
-  const b=P.content, cx=(b[0]+b[2])/2, by=b[3], poseH=b[3]-b[1];
+  const b=P.content, cx=(b[0]+b[2])/2, by=b[3];
   ctx.save();ctx.fillStyle='rgba(0,0,0,.32)';ctx.beginPath();ctx.ellipse(f.x,GROUND+2,54,12,0,0,7);ctx.fill();ctx.restore();
-  const s=c.scale*(c.idleH/poseH);
+  // 프레임 기준 균일 배율 — 포즈 내용높이로 정규화하면 누운 KO 등이 확대되는 버그가 남
+  const s=c.scale*(c.idleFrameH/P.frame[1]);
   let bob=0; if(f.state==='walk')bob=-Math.abs(Math.sin(G.tick*0.42))*6; else if(f.state==='idle')bob=-Math.abs(Math.sin(G.tick*0.06))*2.5;
   ctx.save(); ctx.translate(f.x,f.y+bob); ctx.scale(f.face,1);
   if(f.flash>0&&(f.flash%2===0))ctx.filter='brightness(2.4) saturate(1.4)';
-  ctx.drawImage(img,-cx*s,-by*s,P.frame[0]*s,P.frame[1]*s); ctx.filter='none'; ctx.restore(); }
+  if(pose==='ko'&&c.koFlip){                 // 대게 KO: 180° 회전 → 발라당 자빠짐(다리 위로), 회전 후에도 바닥에 닿게 앵커
+    const ccy=(b[1]+b[3])/2;
+    ctx.translate(0,-(by-ccy)*s); ctx.rotate(Math.PI);
+    ctx.drawImage(img,-cx*s,-ccy*s,P.frame[0]*s,P.frame[1]*s);
+  } else {
+    ctx.drawImage(img,-cx*s,-by*s,P.frame[0]*s,P.frame[1]*s);
+  }
+  ctx.filter='none'; ctx.restore(); }
 
 function drawProjs(){ for(const p of G.projs){ const dir=p.vx>0?1:-1;
   if(p.kind==='fire'){ ctx.save();ctx.translate(p.x,p.y);ctx.scale(dir,1);ctx.globalCompositeOperation='lighter';
@@ -186,14 +197,16 @@ function drawFx(){ for(let i=G.fx.length-1;i>=0;i--){ const e=G.fx[i];e.t++;cons
   for(let j=0;j<7;j++){const a=j*0.9+e.t*0.12,r1=10+k*30,r2=24+k*46;ctx.beginPath();ctx.moveTo(Math.cos(a)*r1,Math.sin(a)*r1);ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);ctx.stroke();}
   ctx.restore(); if(e.t>=e.life)G.fx.splice(i,1);} }
 
-function drawStage(){ const sky=ctx.createLinearGradient(0,0,0,H);
-  sky.addColorStop(0,'#231016');sky.addColorStop(.5,'#3a1c22');sky.addColorStop(1,'#1a2b30');
-  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
-  const vg=ctx.createRadialGradient(W/2,H*.44,H*.42,W/2,H*.5,H);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.4)');
+function drawStage(){
+  if(BG.complete&&BG.naturalWidth){ ctx.drawImage(BG,0,0,W,H); }   // 영덕항 배경 이미지
+  else{ const sky=ctx.createLinearGradient(0,0,0,H);               // 로드 전 폴백 그라디언트
+    sky.addColorStop(0,'#231016');sky.addColorStop(.5,'#3a1c22');sky.addColorStop(1,'#1a2b30');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,W,H); }
+  // 캐릭터 분리용 오버레이 — 은은한 비네트 + 발밑 어둠(배경은 이미 블러·톤다운됨)
+  const vg=ctx.createRadialGradient(W/2,H*.44,H*.42,W/2,H*.5,H);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.42)');
   ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
-  const band=ctx.createLinearGradient(0,GROUND-90,0,GROUND+30);band.addColorStop(0,'rgba(6,4,8,0)');band.addColorStop(1,'rgba(6,4,8,.42)');
-  ctx.fillStyle=band;ctx.fillRect(0,GROUND-90,W,120);
-  ctx.fillStyle='#3a2a20';ctx.fillRect(0,GROUND+10,W,H-GROUND-10); }
+  const band=ctx.createLinearGradient(0,GROUND-90,0,GROUND+30);band.addColorStop(0,'rgba(6,4,8,0)');band.addColorStop(1,'rgba(6,4,8,.5)');
+  ctx.fillStyle=band;ctx.fillRect(0,GROUND-90,W,120); }
 
 function drawHUD(){ function bar(x,hp,mx,flip,col){ const w=380,h=22;
   ctx.fillStyle='#20141a';ctx.fillRect(x,24,w,h); const p=Math.max(0,hp/mx);

@@ -77,6 +77,33 @@ def remove_bg(im):
                 for cx, cy in comp:
                     r, g, bl, _ = px[cx, cy]; px[cx, cy] = (r, g, bl, 0)
 
+    # 3차: 바닥 '회색 그림자' 제거 — 이미 투명한 바깥에서 회색으로만 번져 들어감.
+    # 캐릭터(주황=고채도)와 검은 외곽선(어두움)은 벽이 되어 못 넘어가고,
+    # 껍데기 안쪽 하이라이트/ko 소용돌이 눈(안쪽에 갇힘)은 바깥과 끊겨 보호됨.
+    def is_shadow(p):
+        r, g, b, a = p
+        if a == 0:
+            return False
+        sat = max(r, g, b) - min(r, g, b)
+        lum = 0.299*r + 0.587*g + 0.114*b
+        return sat <= 40 and 78 <= lum <= 205     # 흐릿한 회색 그림자(흰 이빨 lum>205·검은 외곽선 lum<78 제외)
+    seen3 = bytearray(W*H)
+    q3 = deque()
+    for y in range(H):
+        b = y*W
+        for x in range(W):
+            if px[x, y][3] == 0:
+                seen3[b+x] = 1; q3.append((x, y))
+    while q3:
+        x, y = q3.popleft()
+        for dx, dy in ((1,0),(-1,0),(0,1),(0,-1)):
+            nx, ny = x+dx, y+dy
+            if 0 <= nx < W and 0 <= ny < H:
+                i = ny*W+nx
+                if not seen3[i] and is_shadow(px[nx, ny]):
+                    r, g, bl, _ = px[nx, ny]; px[nx, ny] = (r, g, bl, 0)
+                    seen3[i] = 1; q3.append((nx, ny))
+
     # 알파 정리: 침식 → 소프트 블러 → 미세 잔여(≈투명) 컷
     a = im.getchannel("A").filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.6))
     a = a.point(lambda v: 0 if v < 14 else v)

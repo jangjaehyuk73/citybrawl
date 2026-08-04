@@ -4,6 +4,19 @@
     1192
   ],
   "sprites": {
+    "crouch": {
+      "file": "sprites/crouch.png",
+      "frame": [
+        1782,
+        2392
+      ],
+      "content": [
+        166,
+        872,
+        1651,
+        2036
+      ]
+    },
     "guard": {
       "file": "sprites/guard.png",
       "frame": [
@@ -11,9 +24,22 @@
         2392
       ],
       "content": [
-        166,
+        167,
         873,
         1651,
+        2035
+      ]
+    },
+    "hit": {
+      "file": "sprites/hit.png",
+      "frame": [
+        1782,
+        2392
+      ],
+      "content": [
+        66,
+        703,
+        1730,
         2035
       ]
     },
@@ -56,6 +82,19 @@
         2035
       ]
     },
+    "ko": {
+      "file": "sprites/ko.png",
+      "frame": [
+        1782,
+        2392
+      ],
+      "content": [
+        64,
+        703,
+        1731,
+        2034
+      ]
+    },
     "punch": {
       "file": "sprites/punch.png",
       "frame": [
@@ -76,10 +115,10 @@
         2392
       ],
       "content": [
-        4,
+        41,
         424,
         1784,
-        2043
+        2041
       ]
     },
     "walk": {
