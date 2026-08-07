@@ -1,0 +1,138 @@
+window.MANIFEST = {
+  "cell": [
+    2158,
+    1944
+  ],
+  "sprites": {
+    "crouch": {
+      "file": "sprites/crouch.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        518,
+        250,
+        1900,
+        1846
+      ]
+    },
+    "guard": {
+      "file": "sprites/guard.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        501,
+        89,
+        1841,
+        1848
+      ]
+    },
+    "hit": {
+      "file": "sprites/hit.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        189,
+        96,
+        2018,
+        1848
+      ]
+    },
+    "idle": {
+      "file": "sprites/idle.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        233,
+        94,
+        1945,
+        1848
+      ]
+    },
+    "jump": {
+      "file": "sprites/jump.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        138,
+        93,
+        1945,
+        1745
+      ]
+    },
+    "kick": {
+      "file": "sprites/kick.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        171,
+        141,
+        2018,
+        1848
+      ]
+    },
+    "ko": {
+      "file": "sprites/ko.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        140,
+        459,
+        2083,
+        1708
+      ]
+    },
+    "punch": {
+      "file": "sprites/punch.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        264,
+        116,
+        2123,
+        1843
+      ]
+    },
+    "special": {
+      "file": "sprites/special.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        394,
+        94,
+        1938,
+        1848
+      ]
+    },
+    "walk": {
+      "file": "sprites/walk.png",
+      "frame": [
+        2158,
+        1944
+      ],
+      "content": [
+        235,
+        93,
+        1922,
+        1835
+      ]
+    }
+  }
+};

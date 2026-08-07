@@ -1,0 +1,81 @@
+# 튀김소보로 — Gemini 생성 프롬프트 (대전 격투 파이터)
+
+## 컨셉
+- 도시: 대전 (명물: 성심당 튀김소보로)
+- 아키타입: 헤비급 파워형 브롤러 (닭갈비와 같은 입체 일러스트 스타일)
+- 머리=튀김소보로 크러스트, 눈=땅콩(입체), 몸=거대 근육질 튀김 크러스트, 팬티=노란 포장지("튀김소보로")
+
+## idle(기본) 프롬프트 — 검증됨 ✅
+**이미지 첨부**: ① 닭갈비 캐릭터(스타일 레퍼런스) ② 소보로 빵 사진(얼굴 텍스처). Aspect ratio **3:4**.
+
+> A full-body semi-realistic stylized 3D fighting-game character, front view, standing in a wide idle fighting stance, centered on a plain flat LIGHT-GRAY studio background. Match the exact art style and rendering of the muscular rooster-warrior reference image — semi-realistic stylized 3D like a modern fighting game (Street Fighter 6 / Overwatch), strong volumetric shading, dramatic rim lighting, bold clean outlines, dimensional and NOT flat, high detail.
+> This character is "튀김소보로" (deep-fried streusel bread) — the mascot fighter of Daejeon, Korea.
+> HEAD: a big round golden-brown FRIED SOBORO bun as the head/face — glossy deep-fried dome covered in cracked crispy crumbly streusel-crumb crust, warm golden-brown tones. Fierce fighting face: two whole in-shell PEANUTS as bulging dimensional 3D eyes (bumpy peanut-shell texture, angry glare), a small rounded crumb nose, a determined gritted mouth, furrowed brow.
+> BODY: an enormous hyper-muscular heavyweight brawler physique — extremely broad boulder-like shoulders, huge barrel chest, massive tree-trunk arms and legs, giant blocky fists. Entire body surface = golden-brown crispy deep-fried crust with cracked streusel-crumb texture, rim-lit plated chunks.
+> CLOTHING: only briefs/trunks made from the bright YELLOW paper wrapper of the fried soboro bread (glossy yellow packaging with "튀김소보로" printed), worn like fighting shorts.
+> CRITICAL FRAMING: ZOOM OUT so the ENTIRE character head-to-toe is fully visible with generous empty margin on all four sides, nothing cropped or touching edges. Full body, centered, plain flat light-gray studio background, soft ground shadow. High resolution, no watermark.
+
+## 포즈 세트 — 붙여넣기용 완성 프롬프트
+**방법**: idle 이미지를 **첨부**(일관성↑) + 아래 블록 하나 붙여넣기. Aspect ratio **1:1**(idle과 동일 비율). 결과를 `soboro_<pose>.png`로 `poses/`에 저장 → `python3 process_all.py`.
+- 공통규칙: 전신·정면·밝은 회색 배경·**ZOOM OUT 사방 여백**·워터마크 없음. 공격(punch/kick/special)은 **화면 오른쪽으로** 뻗기.
+
+**공통 접두** (모든 블록 앞에 붙음, 아래 블록엔 이미 포함):
+> A full-body semi-realistic stylized 3D fighting-game character, front view, full body head-to-toe, centered on a plain flat LIGHT-GRAY studio background, bold clean outlines, dramatic rim lighting, dimensional 3D and NOT flat. The character is "튀김소보로", a heavyweight brawler: a big round golden-brown FRIED SOBORO-bread head with cracked crispy streusel-crumb crust, two whole in-shell PEANUTS as bulging 3D eyes, a small crumb nose, a fierce gritted mouth; an enormous hyper-muscular body entirely covered in golden-brown crispy fried-crust texture; wearing only bright YELLOW paper-wrapper trunks printed "튀김소보로". Keep this EXACT character — same colors, textures, proportions, art style. CRITICAL FRAMING: ZOOM OUT so the whole character (including any extended limb) is fully inside the frame with generous margin on all sides, nothing cropped or touching edges. Plain flat light-gray background, soft ground shadow, no text except on the trunks, no watermark.
+
+---
+**walk** (`soboro_walk.png`) ※3/4 측면(오른쪽) — Aspect ratio 1:1
+> A full-body semi-realistic stylized 3D fighting-game character, **3/4 SIDE VIEW facing RIGHT** (turned toward an opponent on the right), full body head-to-toe, centered on a plain flat LIGHT-GRAY studio background, bold clean outlines, dramatic rim lighting, dimensional 3D and NOT flat. The character is "튀김소보로", a heavyweight brawler: a big round golden-brown FRIED SOBORO-bread head with cracked crispy streusel-crumb crust, two whole in-shell PEANUTS as bulging 3D eyes, a small crumb nose, a fierce gritted mouth; an enormous hyper-muscular body covered in golden-brown crispy fried-crust texture; wearing only bright YELLOW paper-wrapper trunks printed "튀김소보로". Keep this EXACT character.
+> POSE: WALKING forward to the RIGHT, side-on, advancing on the opponent — one huge leg lifted and stepping forward to the right mid-stride, the other leg planted behind pushing off, torso leaning slightly forward into the step, both fists raised up in a boxing guard, fierce determined face.
+> CORRECT ANATOMY: EXACTLY TWO ARMS and TWO legs, ONE head — no extra or duplicated limbs.
+> CRITICAL FRAMING: ZOOM OUT so the whole character is inside the frame with generous margin on all sides, nothing cropped. Plain flat light-gray background, soft ground shadow, no text except on the trunks, no watermark.
+
+**punch** (`soboro_punch.png`) ※몸을 오른쪽으로 틀어 측면 펀치 (정면 펀치 금지!) — Aspect ratio 4:3 권장
+> A full-body semi-realistic stylized 3D fighting-game character in a dynamic action pose, **3/4 SIDE VIEW facing RIGHT**, full body head-to-toe, centered on a plain flat LIGHT-GRAY studio background, bold clean outlines, dramatic rim lighting, dimensional 3D and NOT flat. The character is "튀김소보로", a heavyweight brawler: a big round golden-brown FRIED SOBORO-bread head with cracked crispy streusel-crumb crust, two whole in-shell PEANUTS as bulging 3D eyes, a small crumb nose, a fierce gritted mouth; an enormous hyper-muscular body covered in golden-brown crispy fried-crust texture; wearing only bright YELLOW paper-wrapper trunks printed "튀김소보로". Keep this EXACT character — same colors, textures, proportions, art style.
+> POSE: throwing a MASSIVE straight PUNCH to the RIGHT. The whole body is turned into a 3/4 side stance facing right (toward an enemy standing to the right). One giant fist is thrust straight out HORIZONTALLY to the right, the arm fully extended and parallel to the ground, drawn in clean SIDE PROFILE reaching toward the right edge — the fist travels SIDEWAYS to the right, NOT toward the camera, NOT foreshortened, NOT facing the viewer. The other fist pulled back to the chest, weight forward, roaring, eyes glaring.
+> CRITICAL FRAMING: ZOOM OUT so the ENTIRE character including the fully-extended punching arm and fist is inside the frame with generous margin on all sides, nothing cropped or touching edges. Plain flat light-gray background, soft ground shadow, no text except on the trunks, no watermark.
+
+※ kick·special 도 정면으로 나오면 같은 방식(몸을 오른쪽으로 튼 3/4 측면, "reaches sideways to the right, NOT toward the camera")으로 고칠 것.
+
+**kick** (`soboro_kick.png`) ※몸을 오른쪽으로 튼 측면 킥 (정면 금지!) — Aspect ratio 4:3 권장
+> A full-body semi-realistic stylized 3D fighting-game character in a dynamic action pose, **3/4 SIDE VIEW facing RIGHT**, full body head-to-toe, centered on a plain flat LIGHT-GRAY studio background, bold clean outlines, dramatic rim lighting, dimensional 3D and NOT flat. The character is "튀김소보로", a heavyweight brawler: a big round golden-brown FRIED SOBORO-bread head with cracked crispy streusel-crumb crust, two whole in-shell PEANUTS as bulging 3D eyes, a small crumb nose, a fierce gritted mouth; an enormous hyper-muscular body covered in golden-brown crispy fried-crust texture; wearing only bright YELLOW paper-wrapper trunks printed "튀김소보로". Keep this EXACT character — same colors, textures, proportions, art style.
+> POSE: throwing a POWERFUL SIDE KICK to the RIGHT. The whole body is turned into a 3/4 side stance facing right (toward an enemy on the right). One massive leg is extended straight out HORIZONTALLY to the right, knee locked, the sole/foot driving toward the right edge, drawn in clean SIDE PROFILE parallel to the ground — the kick travels SIDEWAYS to the right, NOT toward the camera, NOT foreshortened, NOT facing the viewer. The other leg is planted and bent for support, body leaning back/away for balance, fists raised, roaring, eyes glaring.
+> CRITICAL FRAMING: ZOOM OUT so the ENTIRE character including the fully-extended kicking leg and foot is inside the frame with generous margin on all sides, nothing cropped or touching edges. Plain flat light-gray background, soft ground shadow, no text except on the trunks, no watermark.
+
+**jump** (`soboro_jump.png`)
+> [공통 접두] POSE: a big JUMP in mid-air — both legs bent and tucked up under the body, fists raised, the whole heavy body airborne and compact, determined expression.
+
+**special** (`soboro_special.png`) ※몸을 오른쪽으로 튼 측면 발사 (정면 금지!) — Aspect ratio 4:3 권장
+> A full-body semi-realistic stylized 3D fighting-game character in a dynamic action pose, **3/4 SIDE VIEW facing RIGHT**, full body head-to-toe, centered on a plain flat LIGHT-GRAY studio background, bold clean outlines, dramatic rim lighting, dimensional 3D and NOT flat. The character is "튀김소보로", a heavyweight brawler: a big round golden-brown FRIED SOBORO-bread head with cracked crispy streusel-crumb crust, two whole in-shell PEANUTS as bulging 3D eyes, a small crumb nose, a fierce gritted mouth; an enormous hyper-muscular body covered in golden-brown crispy fried-crust texture; wearing only bright YELLOW paper-wrapper trunks printed "튀김소보로". Keep this EXACT character — same colors, textures, proportions, art style.
+> POSE: unleashing its SIGNATURE SPECIAL ATTACK to the RIGHT. The whole body is turned into a 3/4 side stance facing right (toward an enemy on the right), leaning forward with weight driving right. Both huge hands are thrust forward together to the RIGHT, palms open, launching a blast of scorching-hot golden bread crumbs and roasted peanuts straight SIDEWAYS to the right — the attack travels to the right, NOT toward the camera, NOT foreshortened. Roaring fiercely, eyes blazing, both arms fully attached to the body.
+> CRITICAL FRAMING: ZOOM OUT so the ENTIRE character including the extended arms is inside the frame with generous margin on all sides, nothing cropped or touching edges. Plain flat light-gray background, soft ground shadow, no text except on the trunks, no watermark.
+
+**guard** (`soboro_guard.png`) ※3/4 측면(오른쪽) — Aspect ratio 1:1
+> A full-body semi-realistic stylized 3D fighting-game character, **3/4 SIDE VIEW facing RIGHT** (turned toward an opponent on the right), full body head-to-toe, centered on a plain flat LIGHT-GRAY studio background, bold clean outlines, dramatic rim lighting, dimensional 3D and NOT flat. The character is "튀김소보로", a heavyweight brawler: a big round golden-brown FRIED SOBORO-bread head with cracked crispy streusel-crumb crust, two whole in-shell PEANUTS as bulging 3D eyes, a small crumb nose, a fierce gritted mouth; an enormous hyper-muscular body covered in golden-brown crispy fried-crust texture; wearing only bright YELLOW paper-wrapper trunks printed "튀김소보로". Keep this EXACT character.
+> POSE: a POWERFUL DEFENSIVE BLOCK, side-on facing right — he raises his TWO massive forearms and stacks them TOGETHER into a solid wall/shield in front of his face and chest, TANKING a heavy incoming blow from the right. Muscles flexed hard and tense, shoulders driven forward into the block, feet planted wide and braced against the impact, leaning INTO the guard. Fierce defiant scowl, teeth gritted, eyes glaring over the forearms. A strong immovable active block — NOT a relaxed boxing stance, NOT timid or passive.
+> CORRECT ANATOMY: EXACTLY TWO ARMS (both forearms up together in the block) and TWO legs, ONE head — absolutely no third arm, no extra or duplicated limbs.
+> CRITICAL FRAMING: ZOOM OUT so the whole character is inside the frame with generous margin on all sides, nothing cropped. Plain flat light-gray background, soft ground shadow, no text except on the trunks, no watermark.
+
+**crouch** (`soboro_crouch.png`) ※3/4 측면(오른쪽) — Aspect ratio 1:1
+> A full-body semi-realistic stylized 3D fighting-game character, **3/4 SIDE VIEW facing RIGHT** (turned toward an opponent on the right), full body head-to-toe, centered on a plain flat LIGHT-GRAY studio background, bold clean outlines, dramatic rim lighting, dimensional 3D and NOT flat. The character is "튀김소보로", a heavyweight brawler: a big round golden-brown FRIED SOBORO-bread head with cracked crispy streusel-crumb crust, two whole in-shell PEANUTS as bulging 3D eyes, a small crumb nose, a fierce gritted mouth; an enormous hyper-muscular body covered in golden-brown crispy fried-crust texture; wearing only bright YELLOW paper-wrapper trunks printed "튀김소보로". Keep this EXACT character.
+> POSE: CROUCHING VERY LOW to the ground, side-on facing right — legs deeply bent in a full deep squat with hips dropped almost to the heels, AND the upper body also folded down low: torso hunched forward, back rounded, shoulders pulled in, head lowered close to the knees, chin tucked. The whole body is compressed into a tight compact low ball, staying close to the floor. Both fists held up in front near the face in guard, eyes narrowed, coiled and ready to spring. (keep the whole body inside the frame)
+> CORRECT ANATOMY: EXACTLY TWO ARMS and TWO legs, ONE head — no extra or duplicated limbs.
+> CRITICAL FRAMING: ZOOM OUT so the whole character is inside the frame with generous margin on all sides, nothing cropped. Plain flat light-gray background, soft ground shadow, no text except on the trunks, no watermark.
+
+**hit** (`soboro_hit.png`) ※3/4 측면(오른쪽) · 오른쪽에서 맞고 왼쪽으로 휘청 — Aspect ratio 4:3
+> A full-body semi-realistic stylized 3D fighting-game character, **3/4 SIDE VIEW facing RIGHT** (turned toward an opponent on the right), full body head-to-toe, centered on a plain flat LIGHT-GRAY studio background, bold clean outlines, dramatic rim lighting, dimensional 3D and NOT flat. The character is "튀김소보로", a heavyweight brawler: a big round golden-brown FRIED SOBORO-bread head with cracked crispy streusel-crumb crust, two whole in-shell PEANUTS as bulging 3D eyes, a small crumb nose, a fierce gritted mouth; an enormous hyper-muscular body covered in golden-brown crispy fried-crust texture; wearing only bright YELLOW paper-wrapper trunks printed "튀김소보로". Keep this EXACT character.
+> POSE: the moment of GETTING PUNCHED HARD in the face and recoiling in PAIN. Head snapped BACKWARD, face wincing in pain — eyes scrunched, mouth open in an anguished "ough" grimace (a HURT expression, NOT a roar). Torso arched and staggering BACKWARD off-balance to the left, one foot lifting off the ground. He has EXACTLY TWO ARMS: ONE hand thrown up next to his struck face, the OTHER arm swung down and back behind him for balance. Clearly hurt and reeling — NOT attacking, NOT reaching forward, NOT a fighting stance.
+> CORRECT ANATOMY: exactly two arms and two legs, ONE head — absolutely no extra or duplicated limbs.
+> CRITICAL FRAMING: ZOOM OUT so the whole staggering body is inside the frame with generous margin on all sides, nothing cropped. Plain flat light-gray background, soft ground shadow, no text except on the trunks, no watermark.
+
+**ko** (`soboro_ko.png`) ※가로로 눕기 — Aspect ratio 4:3 또는 16:9(가로)
+> A full-body semi-realistic stylized 3D fighting-game character, lying down HORIZONTAL, full body head-to-toe, centered on a plain flat LIGHT-GRAY studio background, bold clean outlines, dramatic rim lighting, dimensional 3D and NOT flat. The character is "튀김소보로", a heavyweight brawler: a big round golden-brown FRIED SOBORO-bread head with cracked crispy streusel-crumb crust, a small crumb nose, an open mouth; an enormous hyper-muscular body covered in golden-brown crispy fried-crust texture; wearing only bright YELLOW paper-wrapper trunks printed "튀김소보로". Keep this EXACT character.
+> POSE: KNOCKED OUT and DEFEATED, lying flat on his BACK on the ground, fully HORIZONTAL — head toward the LEFT and feet toward the RIGHT, arms and legs sprawled out limp and relaxed, belly up. Eyes are dizzy cartoon SPIRALS (X_X / @_@ knocked-out eyes), tongue lolling, comically defeated. The whole body is lying on the floor, NOT standing, NOT upright.
+> CORRECT ANATOMY: EXACTLY TWO ARMS and TWO legs, ONE head — no extra or duplicated limbs.
+> CRITICAL FRAMING: ZOOM OUT so the whole lying body from head to feet is inside the frame with generous margin on all sides, nothing cropped. Plain flat light-gray background, soft ground shadow, no text except on the trunks, no watermark.
+
+---
+※ 필살기 투사체는 **절차적(코드)로 뜨거운 크럼+땅콩**을 날릴 수 있어 별도 이미지 불필요. 원하면 `soboro_crumb.png`(뭉친 소보로 크럼 덩어리 하나, 회색배경)를 따로 뽑아도 됨.
+
+## 처리
+- 배경제거·게임편입: `process_all.py`(테두리flood+워터마크+그림자 3패스) → `sprites/` + `manifest.json/.js`
+- 게임: 대게 `versus.html` 방식으로 캐릭터 추가 가능 (스케일 idle 300px 정규화)
