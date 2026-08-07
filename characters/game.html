@@ -20,8 +20,8 @@
   #leftZone{ left:0; } #rightZone{ right:0; }
   .zone.on{ opacity:1; }
   .zbg{ position:absolute; inset:0; background-size:cover; background-position:center; }
-  #leftZone .zbg{ -webkit-mask-image:linear-gradient(to right,#000 42%,transparent 90%); mask-image:linear-gradient(to right,#000 42%,transparent 90%); }
-  #rightZone .zbg{ -webkit-mask-image:linear-gradient(to left,#000 42%,transparent 90%); mask-image:linear-gradient(to left,#000 42%,transparent 90%); }
+  #leftZone .zbg{ -webkit-mask-image:radial-gradient(78% 118% at 20% 50%,#000 24%,transparent 70%); mask-image:radial-gradient(78% 118% at 20% 50%,#000 24%,transparent 70%); }
+  #rightZone .zbg{ -webkit-mask-image:radial-gradient(78% 118% at 80% 50%,#000 24%,transparent 70%); mask-image:radial-gradient(78% 118% at 80% 50%,#000 24%,transparent 70%); }
   .zchar{ position:absolute; top:4%; height:156%; }   /* 크게 → 상반신만(하반신 프레임 아래로 잘림) */
   #leftZone .zchar{ left:-16%; } #rightZone .zchar{ right:-16%; }  /* 바깥으로 크게 밀어 가운데 여백 확보(안쪽 집게발 크롭 OK) */
   .zname{ z-index:4; }
@@ -34,14 +34,11 @@
   .badge{ position:absolute; top:7%; z-index:3; background:#2b6f86; color:#fff; font-weight:800; font-size:11px; padding:3px 11px; border-radius:20px; }
   #leftZone .badge{ left:5%; background:#c79a2a; color:#161009; } #rightZone .badge{ right:5%; }
 
-  #mapCenter{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:26%; max-width:280px; min-width:170px; z-index:5; }
-  #korea{ width:100%; display:block; filter:drop-shadow(0 8px 20px #000c); }
-  #korea path{ fill:#16323d; stroke:#5a8ba0; stroke-width:2.5; }
-  .pin{ position:absolute; transform:translate(-50%,-100%); cursor:pointer; z-index:6; display:flex; flex-direction:column; align-items:center; }
-  .pin .dot{ width:14px; height:14px; border-radius:50%; background:#f2c14e; box-shadow:0 0 0 5px #f2c14e33,0 2px 6px #000; animation:pin-pulse 1.5s ease-in-out infinite; }
-  .pin .lbl{ font-size:11px; font-weight:700; color:#fff; margin-top:2px; text-shadow:0 1px 3px #000,0 0 6px #000; white-space:nowrap; }
-  .pin:hover .dot, .pin.act .dot{ background:#ffe488; transform:scale(1.3); }
-  @keyframes pin-pulse{ 0%,100%{box-shadow:0 0 0 4px #f2c14e33,0 2px 6px #000} 50%{box-shadow:0 0 0 9px #f2c14e11,0 2px 6px #000} }
+  #mapCenter{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:41%; max-width:440px; min-width:250px; z-index:5; }
+  #mapCenter img{ width:100%; display:block; filter:drop-shadow(0 6px 16px #0009) drop-shadow(0 2px 4px #0007); }
+  .pin{ position:absolute; transform:translate(-50%,-50%); width:23%; aspect-ratio:1; border-radius:50%; cursor:pointer; z-index:6;
+        border:3px solid #f2c14e99; background:transparent; box-shadow:0 0 10px #f2c14e55, inset 0 0 8px #f2c14e33; animation:ring-pulse 1.8s ease-in-out infinite; }
+  .pin:hover, .pin.act{ border-color:#ffe07a; box-shadow:0 0 20px #ffe07abb, inset 0 0 12px #ffe07a55; transform:translate(-50%,-50%) scale(1.16); }
   #vsMark{ position:absolute; left:50%; bottom:6%; transform:translateX(-50%); z-index:6; font-size:26px; font-weight:900;
            color:#fff; text-shadow:0 3px 0 #b8121e,0 0 18px #ffbb3388; opacity:0; }
   #vsMark.on{ animation:vs-pop .6s cubic-bezier(.2,1.9,.4,1) both; }
@@ -69,26 +66,50 @@
   .hint{ font-size:12px; color:#89a; margin:8px 0 20px; text-align:center; line-height:1.6; }
   kbd{ background:#1a2530; border:1px solid #3a4a58; border-radius:4px; padding:1px 6px; color:#bfe; font-size:11px; }
   #loading{ font-size:13px; color:#8aa; margin:20px; }
+  #muteBtn{ position:fixed; top:10px; right:12px; z-index:50; background:#1a2530; border:1px solid #3a4a58;
+            color:#bfe; font-size:16px; border-radius:8px; padding:5px 9px; cursor:pointer; }
+  #intro{ position:relative; width:min(1000px,96vw); aspect-ratio:16/9; background:#000; border-radius:12px;
+          overflow:hidden; border:1px solid #26323e; margin-top:8px; }
+  #introVid{ width:100%; height:100%; object-fit:cover; display:block; background:#000; }
+  #introPlay{ position:absolute; inset:0; margin:auto; width:210px; height:66px; background:rgba(242,193,78,.96);
+              color:#161009; font-size:21px; font-weight:900; border:0; border-radius:12px; cursor:pointer; box-shadow:0 8px 26px #000b; }
+  #introPlay:hover{ background:#ffd464; }
+  #skipBtn{ position:absolute; right:14px; bottom:12px; z-index:2; background:rgba(18,24,32,.82); color:#cfe;
+            border:1px solid #3a4a58; font-size:13px; padding:7px 14px; border-radius:8px; cursor:pointer; }
+  #skipBtn:hover{ color:#fff; border-color:#6a8; }
+  /* ── 지도 선택 ── */
+  #mapScreen{ width:min(1000px,96vw); text-align:center; }
+  #mapTitle2{ font-size:15px; font-weight:700; color:#f2c14e; margin:10px 0 8px; }
+  #mapBox{ position:relative; width:100%; border-radius:12px; overflow:hidden; }
+  #mapImg{ width:100%; display:block; }
+  .cityPin{ position:absolute; transform:translate(-50%,-50%); width:8.5%; aspect-ratio:1; border-radius:50%;
+            background:transparent; border:3px solid #f2c14e88; cursor:pointer; padding:0;
+            box-shadow:0 0 12px #f2c14e55, inset 0 0 12px #f2c14e33; animation:ring-pulse 1.8s ease-in-out infinite; }
+  .cityPin:hover{ border-color:#ffe07a; box-shadow:0 0 24px #ffe07aaa, inset 0 0 18px #ffe07a55;
+            transform:translate(-50%,-50%) scale(1.16); background:#ffffff12; }
+  @keyframes ring-pulse{ 0%,100%{ box-shadow:0 0 10px #f2c14e44, inset 0 0 10px #f2c14e22 }
+                         50%{ box-shadow:0 0 20px #f2c14e99, inset 0 0 18px #f2c14e55 } }
 </style>
 
 <h1>🏙️ 도시명물 대전</h1>
 <div class="sub">전국 명물들의 격투! 1인용</div>
 
+<!-- ── 인트로 영상 ── -->
+<div id="intro">
+  <video id="introVid" src="intro/intro.mp4" playsinline preload="auto" poster="intro/intro_keyart_energy.png"></video>
+  <button id="introPlay">▶ 시작</button>
+  <button id="skipBtn" hidden>건너뛰기 ⏭</button>
+</div>
+
 <!-- ── 지도 VS 셀렉트 ── -->
-<div id="select">
+<div id="select" hidden>
   <div id="selTitle">지도의 핀에 커서를 올려 미리보고, 클릭해서 내 캐릭터를 정하세요</div>
   <div id="vs">
     <div id="leftZone" class="zone"><div class="zbg"></div><div class="zchar"><img alt=""></div>
       <div class="badge">YOU</div><div class="zname"><span class="city"></span><span class="nm"></span></div></div>
     <div id="rightZone" class="zone"><div class="zbg"></div><div class="zchar"><img alt=""></div>
       <div class="badge">CPU</div><div class="zname"><span class="city"></span><span class="nm"></span></div></div>
-    <div id="mapCenter">
-      <svg id="korea" viewBox="0 0 300 440" xmlns="http://www.w3.org/2000/svg">
-        <path d="M148,40 C175,40 191,57 197,84 C206,120 217,150 210,189 C205,226 215,251 205,286
-                 C196,321 178,353 158,383 C150,396 139,399 131,386 C117,364 111,340 103,314
-                 C91,278 73,250 69,212 C65,175 70,131 84,103 C99,73 120,40 148,40 Z"/>
-      </svg>
-    </div>
+    <div id="mapCenter"><img id="mapImg" src="map_shape.png?v=3" alt=""></div>
     <div id="vsMark">VS</div>
   </div>
   <button id="fightBtn" hidden>FIGHT!</button>
@@ -104,27 +125,46 @@
   KO 후 <kbd>Enter</kbd> 재대결 · <kbd>Esc</kbd> 지도로
 </div>
 
+<button id="muteBtn" title="음소거 (M)">🔊</button>
+<script src="audio.js"></script>
 <script src="roster.js?v=3"></script>
 <script>
 const R = window.ROSTER;
 const KEYS = ['dakgalbi','daege','soboro'];
 const TARGET = 300;
-const CITY = [
-  {key:'dakgalbi', city:'춘천', x:57, y:21},
-  {key:'daege',    city:'속초', x:67, y:17},
-  {key:'soboro',   city:'대전', x:49, y:47},
+const CITY = [   // x,y = map_crop.png 위 도시 위치(%)
+  {key:'dakgalbi', city:'춘천', x:45, y:18},
+  {key:'daege',    city:'속초', x:76, y:19},
+  {key:'soboro',   city:'대전', x:45, y:47},
 ];
 const cityOf = k => (CITY.find(c=>c.key===k)||{}).city || '';
 // 캐릭터별 바깥으로 미는 정도(%) — 넓은 캐릭터일수록 크게(바깥 잘림 + 지도쪽 여백↑)
 const PUSH = { dakgalbi:15, daege:28, soboro:31 };
 // 캐릭터별 크기(zone 높이 %) — 넓은 대게·소보로는 줄여 닭갈비와 균형
-const SIZE = { dakgalbi:156, daege:126, soboro:134 };
+const SIZE = { dakgalbi:160, daege:136, soboro:144 };
+
+// ── 음소거 토글(게임 BGM/SFX + 인트로 영상) ──
+const elMute=document.getElementById('muteBtn');
+function setMute(m){ elMute.textContent = m ? '🔇' : '🔊'; if(introVid) introVid.muted=m; }
+elMute.onclick=()=> setMute(SND.toggleMute());
+addEventListener('keydown',e=>{ if(e.code==='KeyM') setMute(SND.toggleMute()); });
+
+// ── 인트로 영상 → (끝/스킵) → 지도 셀렉트 ──
+const elIntro=document.getElementById('intro'), introVid=document.getElementById('introVid'),
+      introPlay=document.getElementById('introPlay'), skipBtn=document.getElementById('skipBtn');
+let introDone=false;
+function startIntro(){ introVid.muted=SND.muted; introVid.play().catch(()=>endIntro()); introPlay.hidden=true; skipBtn.hidden=false; }
+function endIntro(){ if(introDone) return; introDone=true; try{introVid.pause();}catch(e){}
+  elIntro.hidden=true; SND.init(); toSelect(); }   // 인트로 끝 → 지도 셀렉트
+introPlay.onclick=startIntro;
+introVid.addEventListener('ended', endIntro);
+skipBtn.onclick=endIntro;
 
 // ── DOM ──
 const elSelect=document.getElementById('select'), elTitle=document.getElementById('selTitle'),
-      elMap=document.getElementById('mapCenter'), elLeft=document.getElementById('leftZone'),
-      elRight=document.getElementById('rightZone'), elVs=document.getElementById('vsMark'),
-      elFight=document.getElementById('fightBtn'), elRe=document.getElementById('reBtn');
+      elLeft=document.getElementById('leftZone'), elRight=document.getElementById('rightZone'),
+      elVs=document.getElementById('vsMark'), elFight=document.getElementById('fightBtn'),
+      elRe=document.getElementById('reBtn');
 let pick={p1:null,p2:null}, locked=false;
 
 function fillZone(zone,key){
@@ -140,39 +180,38 @@ function fillZone(zone,key){
 }
 function playZone(zone,key){ fillZone(zone,key); zone.classList.remove('on'); void zone.offsetWidth; zone.classList.add('on'); }
 
-// 핀 생성 + 호버/클릭
+// 지도 위 도시 핀(글로우 링) — 호버=캐릭터 미리보기, 클릭=확정
+const elMap=document.getElementById('mapCenter');
 CITY.forEach(c=>{
   const p=document.createElement('div'); p.className='pin'; p.dataset.key=c.key;
-  p.style.left=c.x+'%'; p.style.top=c.y+'%';
-  p.innerHTML=`<div class="dot"></div><div class="lbl">${c.city}·${R[c.key].label}</div>`;
-  p.onmouseenter=()=>{ if(!locked) previewLeft(c.key); };
-  p.onclick=()=>{ if(!locked) chooseP1(c.key); };
+  p.style.left=c.x+'%'; p.style.top=c.y+'%'; p.title=R[c.key].label;
+  p.onmouseenter=()=>{ SND.init(); if(!locked) previewLeft(c.key); };
+  p.onclick=()=>{ SND.init(); if(!locked) chooseP1(c.key); };
   elMap.appendChild(p);
 });
-function previewLeft(key){
-  pick.p1=key;
+function previewLeft(key){   // 커서 올린 도시의 캐릭터가 왼쪽에 등장
+  SND.play('swoosh'); pick.p1=key;
   [...elMap.querySelectorAll('.pin')].forEach(el=>el.classList.toggle('act', el.dataset.key===key));
   playZone(elLeft, key);
 }
-function chooseP1(key){
-  locked=true; pick.p1=key; playZone(elLeft, key);
+function chooseP1(key){      // 클릭 → 내 캐릭터 확정 + CPU 랜덤 등장
+  locked=true; pick.p1=key; SND.play('select'); playZone(elLeft, key);
   elTitle.textContent='상대가 도전장을 내밀었다!';
-  // CPU 랜덤 (같은 캐릭터도 가능)
   pick.p2 = KEYS[Math.floor(Math.random()*KEYS.length)];
-  setTimeout(()=>{ playZone(elRight, pick.p2); }, 700);
-  setTimeout(()=>{ elVs.classList.remove('on'); void elVs.offsetWidth; elVs.classList.add('on'); }, 1500);
+  setTimeout(()=>{ playZone(elRight, pick.p2); SND.play('appear'); }, 700);
+  setTimeout(()=>{ elVs.classList.remove('on'); void elVs.offsetWidth; elVs.classList.add('on'); SND.play('vs'); }, 1500);
   setTimeout(()=>{ elFight.hidden=false; elRe.hidden=false; }, 2200);
 }
-function toSelect(){
+function toSelect(){        // 지도 셀렉트로(리셋)
   G.scene='select'; locked=false; pick={p1:null,p2:null};
   elLeft.classList.remove('on'); elRight.classList.remove('on'); elVs.classList.remove('on');
   [...elMap.querySelectorAll('.pin')].forEach(el=>el.classList.remove('act'));
   elFight.hidden=true; elRe.hidden=true;
-  elTitle.textContent='지도의 핀에 커서를 올려 미리보고, 클릭해서 내 캐릭터를 정하세요';
-  elSelect.hidden=false; document.getElementById('stage').hidden=true;
-  document.getElementById('hint').hidden=true; document.getElementById('loading').hidden=true;
+  elTitle.textContent='지도의 도시에 커서를 올려 미리보고, 클릭해서 출전!';
+  elSelect.hidden=false;
+  document.getElementById('stage').hidden=true; document.getElementById('hint').hidden=true; document.getElementById('loading').hidden=true;
 }
-elFight.onclick=()=> beginMatch(pick.p1, pick.p2);
+elFight.onclick=()=>{ SND.play('fight'); beginMatch(pick.p1, pick.p2); };
 elRe.onclick=toSelect;
 addEventListener('keydown', e=>{ if(e.code==='Escape' && (G.scene==='fight'||G.scene==='result')) toSelect(); });
 
@@ -213,7 +252,7 @@ async function beginMatch(k1,k2){
 const KEY={};
 addEventListener('keydown',e=>{ KEY[e.code]=true;
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
-  if(e.code==='Enter'&&G.scene==='result') reset(G.p1.char,G.p2.char); });
+  if(e.code==='Enter'&&G.scene==='result'){ SND.play('fight'); reset(G.p1.char,G.p2.char); } });
 addEventListener('keyup',e=>{ KEY[e.code]=false; });
 function p1input(){ return { left:KEY['ArrowLeft'],right:KEY['ArrowRight'],up:KEY['ArrowUp'],
   down:KEY['ArrowDown'],guard:KEY['KeyA'],punch:KEY['KeyZ'],kick:KEY['KeyX'],sp:KEY['KeyC'] }; }
@@ -229,15 +268,16 @@ function Fighter(x,faceRight,char,human){
   this.guarding=false;this.ai={think:0,want:'idle'}; }
 Fighter.prototype.busy=function(){return this.state==='attack'||this.state==='hit'||this.state==='ko';};
 Fighter.prototype.startAtk=function(k){ if(this.busy()||this.y<GROUND)return;
-  this.state='attack';this.t=0;this.atk={kind:k,spec:ATK[k],hit:false}; };
+  this.state='attack';this.t=0;this.atk={kind:k,spec:ATK[k],hit:false}; SND.play(k); };
 Fighter.prototype.startSp=function(){ if(this.busy()||this.y<GROUND||this.spCd>0)return;
-  this.state='attack';this.t=0;this.atk={kind:'sp',spec:SP,hit:false,fired:false};this.spCd=140; };
+  this.state='attack';this.t=0;this.atk={kind:'sp',spec:SP,hit:false,fired:false};this.spCd=140; SND.play('special'); };
 Fighter.prototype.hurt=function(dmg,dir,guard){ if(this.state==='ko')return;
   const real=guard?Math.max(1,Math.round(dmg*0.25)):dmg; this.hp-=real; this.flash=6;
-  if(guard){this.vx=dir*3;return;}
-  this.state='hit';this.t=0;this.vx=dir*7;
+  if(guard){this.vx=dir*3; SND.play('guard'); return;}
+  this.state='hit';this.t=0;this.vx=dir*7; SND.play('hit');
   if(this.hp<=0){this.hp=0;this.state='ko';this.t=0;this.vy=-9;G.shake=16;
-    G.winner=(this===G.p1)?G.p2:G.p1;G.scene='result';G.resultT=0;} };
+    G.winner=(this===G.p1)?G.p2:G.p1;G.scene='result';G.resultT=0;
+    SND.play('ko'); setTimeout(()=>SND.play('win'),500);} };
 
 function aiInput(me,foe){ const dist=Math.abs(foe.x-me.x),dir=foe.x>me.x?1:-1;
   const o={left:0,right:0,up:0,down:0,guard:0,punch:0,kick:0,sp:0};
@@ -263,7 +303,7 @@ function step(f,foe){ const inp=f.human?p1input():aiInput(f,foe); f.t++; if(f.sp
       if(inp.left&&!inp.right){f.vx=-sp;f.state=air?'jump':'walk';}
       else if(inp.right&&!inp.left){f.vx=sp;f.state=air?'jump':'walk';}
       else{f.vx=0;if(!air)f.state='idle';}
-      if(inp.up&&!air){f.vy=-f.char.jumpV;f.state='jump';} } }
+      if(inp.up&&!air){f.vy=-f.char.jumpV;f.state='jump';SND.play('jump');} } }
   if(f.state==='attack'){ const a=f.atk,s=a.spec; f.vx*=0.8;
     if(a.kind==='sp'&&f.t===s.startup&&!a.fired){a.fired=true;fireSpecial(f);}
     if(f.t>s.startup+s.active+s.recover){f.state='idle';f.t=0;f.atk=null;} }
